@@ -1,19 +1,17 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { name, company, phone, message } = body;
 
-        // 받을 메일 주소 (환경변수 없으면 기본값으로 insightbuild@daum.net 사용)
         const to = process.env.CONTACT_TO || 'insightbuild@daum.net';
 
-        // Resend를 이용해 실제 이메일 발송
         const result = await resend.emails.send({
-            from: 'Insightbuild Contact <contact@insightbuild.site>',
+            from: 'Insightbuild <onboarding@resend.dev>',   // 여기 중요
             to,
             subject: '인사이트빌드 홈페이지 문의 접수',
             html: `
@@ -26,7 +24,6 @@ export async function POST(request: Request) {
             `,
         });
 
-        // 필요하면 로그로 확인
         console.log('Resend email result:', result);
 
         return NextResponse.json({
