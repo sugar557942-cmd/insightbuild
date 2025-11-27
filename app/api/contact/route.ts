@@ -1,26 +1,43 @@
 import { NextResponse } from 'next/server';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const { name, company, phone, message } = body;
 
-        // Simulate email sending
-        console.log('--- Email Sending Simulation ---');
-        console.log(`To: insightbuild@daum.net`);
-        console.log(`Subject: 인사이트빌드 홈페이지 문의 접수`);
-        console.log(`Body:`);
-        console.log(`이름: ${name}`);
-        console.log(`기업 또는 기관명: ${company}`);
-        console.log(`연락처: ${phone}`);
-        console.log(`문의 내용: ${message}`);
-        console.log('--------------------------------');
+        // 받을 메일 주소 (환경변수 없으면 기본값으로 insightbuild@daum.net 사용)
+        const to = process.env.CONTACT_TO || 'insightbuild@daum.net';
 
-        // In a real scenario, integrate EmailJS or Nodemailer here.
-        // For now, we return success to simulate the experience.
+        // Resend를 이용해 실제 이메일 발송
+        const result = await resend.emails.send({
+            from: 'Insightbuild Contact <contact@insightbuild.site>',
+            to,
+            subject: '인사이트빌드 홈페이지 문의 접수',
+            html: `
+                <h2>인사이트빌드 홈페이지에서 새 문의가 접수되었습니다.</h2>
+                <p><strong>이름:</strong> ${name}</p>
+                <p><strong>기업 또는 기관명:</strong> ${company}</p>
+                <p><strong>연락처:</strong> ${phone}</p>
+                <p><strong>문의 내용:</strong></p>
+                <p>${(message || '').replace(/\n/g, '<br>')}</p>
+            `,
+        });
 
-        return NextResponse.json({ success: true, message: '문의가 접수되었습니다.' });
+        // 필요하면 로그로 확인
+        console.log('Resend email result:', result);
+
+        return NextResponse.json({
+            success: true,
+            message: '문의가 접수되었습니다.',
+        });
     } catch (error) {
-        return NextResponse.json({ error: '전송에 실패했습니다.' }, { status: 500 });
+        console.error('Contact API error:', error);
+        return NextResponse.json(
+            { error: '전송에 실패했습니다.' },
+            { status: 500 },
+        );
     }
 }
