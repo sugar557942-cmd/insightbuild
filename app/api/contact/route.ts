@@ -11,7 +11,8 @@ export async function POST(request: Request) {
         const to = process.env.CONTACT_TO || 'insightbuild@daum.net';
 
         const result = await resend.emails.send({
-            from: 'Insightbuild <onboarding@resend.dev>',   // 여기 중요
+            // ★ 여기 아주 중요: onboarding@resend.dev 로 고정
+            from: 'Insightbuild <onboarding@resend.dev>',
             to,
             subject: '인사이트빌드 홈페이지 문의 접수',
             html: `
