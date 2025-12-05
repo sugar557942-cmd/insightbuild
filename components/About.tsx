@@ -82,8 +82,8 @@ export default function About({ content, portfolioItems }: AboutProps) {
                                     const pseudoRandom = (Math.sin(seed) + 1) / 2; // 0 ~ 1 사이 값
 
                                     // Tailwind class 대신 inline style로 확실하게 크기 제어
-                                    // 기본 1rem(16px) 기준으로 1.2배 ~ 3.5배 사이로 설정
-                                    const randomSize = 1.2 + pseudoRandom * 2.3;
+                                    // 박스 밖으로 나가지 않도록 크기 범위 축소 (0.8rem ~ 2.0rem)
+                                    const randomSize = 0.8 + pseudoRandom * 1.2;
 
                                     const colors = ['text-[#FFD700]', 'text-[#FFAA00]', 'text-white', 'text-gray-200', 'text-gray-400'];
                                     const colorClass = colors[index % colors.length];
