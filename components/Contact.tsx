@@ -65,12 +65,20 @@ export default function Contact({ content }: ContactProps) {
                             const uploadData = await uploadRes.json();
                             attachmentUrls.push(uploadData.url);
                         } else {
-                            console.error('File upload failed for', file.name);
-                            uploadErrors.push(file.name);
+                            const errorText = await uploadRes.text();
+                            console.error('File upload failed for', file.name, uploadRes.status, errorText);
+                            // Try to parse JSON error if possible
+                            let cleanError = errorText;
+                            try {
+                                const jsonError = JSON.parse(errorText);
+                                if (jsonError.error) cleanError = jsonError.error;
+                            } catch (e) { /* ignore */ }
+
+                            uploadErrors.push(`${file.name} (Error ${uploadRes.status}: ${cleanError})`);
                         }
-                    } catch (err) {
+                    } catch (err: any) {
                         console.error('Upload exception for', file.name, err);
-                        uploadErrors.push(file.name);
+                        uploadErrors.push(`${file.name} (${err.message})`);
                     }
                 }));
             }
