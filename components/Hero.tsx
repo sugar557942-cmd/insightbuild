@@ -56,7 +56,7 @@ export default function Hero({ content }: HeroProps) {
                 <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8 font-light leading-relaxed animate-fade-in-up delay-100">
                     {content.subtitle}
                 </p>
-                <p className="text-gray-400 max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200 hidden md:block">
+                <p className="text-gray-400 max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200 hidden md:block whitespace-pre-line">
                     {content.description}
                 </p>
 

@@ -17,9 +17,17 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json();
+
+        // Ensure directory exists
+        const dir = path.dirname(contentPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
         fs.writeFileSync(contentPath, JSON.stringify(body, null, 2), 'utf8');
         return NextResponse.json({ success: true });
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to update content' }, { status: 500 });
+    } catch (error: any) {
+        console.error('Content update error:', error);
+        return NextResponse.json({ error: 'Failed to update content', details: error.message }, { status: 500 });
     }
 }

@@ -28,7 +28,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                 onSave(editedContent);
                 alert('저장되었습니다.');
             } else {
-                alert('저장 실패');
+                const data = await res.json();
+                alert(`저장 실패: ${data.details || '알 수 없는 오류'}`);
             }
         } catch (e) {
             alert('에러 발생');
