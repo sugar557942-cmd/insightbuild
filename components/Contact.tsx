@@ -12,11 +12,12 @@ export default function Contact({ content }: ContactProps) {
         name: '',
         company: '',
         phone: '',
+        field: '',
         message: ''
     });
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -33,7 +34,7 @@ export default function Contact({ content }: ContactProps) {
 
             if (res.ok) {
                 setStatus('success');
-                setFormData({ name: '', company: '', phone: '', message: '' });
+                setFormData({ name: '', company: '', phone: '', field: '', message: '' });
             } else {
                 setStatus('error');
             }
@@ -99,6 +100,23 @@ export default function Contact({ content }: ContactProps) {
                                 className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors"
                                 placeholder="010-1234-5678"
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-400">문의 분야</label>
+                            <select
+                                name="field"
+                                required
+                                value={formData.field}
+                                onChange={handleChange}
+                                className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled>분야를 선택해주세요</option>
+                                <option value="R&D기획">R&D기획</option>
+                                <option value="시장조사 및 분석">시장조사 및 분석</option>
+                                <option value="BM 수립">BM 수립</option>
+                                <option value="기타 외주용역">기타 외주용역</option>
+                            </select>
                         </div>
 
                         <div className="space-y-2">
