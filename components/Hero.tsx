@@ -77,17 +77,17 @@ export default function Hero({ content }: HeroProps) {
             </div>
 
             {/* Visitor Counter */}
-            <div className="absolute bottom-8 left-8 z-20 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-xs text-gray-400 animate-fade-in-up delay-500">
-                <div className="flex flex-col gap-1">
-                    <div className="flex justify-between gap-4">
-                        <span>Today:</span>
-                        <span className="text-[var(--primary-yellow)] font-mono">
+            <div className="absolute bottom-24 left-10 z-20 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-6 text-sm text-gray-400 animate-fade-in-up delay-500 min-w-[180px]">
+                <div className="flex flex-col gap-2">
+                    <div className="flex justify-between gap-6 items-center">
+                        <span className="text-base font-medium">Today:</span>
+                        <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
                             {visitorStats ? visitorStats.todayCount.toLocaleString() : '-'}
                         </span>
                     </div>
-                    <div className="flex justify-between gap-4">
-                        <span>Total:</span>
-                        <span className="text-[var(--primary-yellow)] font-mono">
+                    <div className="flex justify-between gap-6 items-center">
+                        <span className="text-base font-medium">Total:</span>
+                        <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
                             {visitorStats ? visitorStats.totalCount.toLocaleString() : '-'}
                         </span>
                     </div>

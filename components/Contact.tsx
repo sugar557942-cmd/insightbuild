@@ -83,7 +83,7 @@ export default function Contact({ content }: ContactProps) {
                                     value={formData.company}
                                     onChange={handleChange}
                                     className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors"
-                                    placeholder="인사이트빌드"
+                                    placeholder="기업 / 기관명"
                                 />
                             </div>
                         </div>
@@ -118,8 +118,8 @@ export default function Contact({ content }: ContactProps) {
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
                             className={`w-full py-4 rounded-lg font-bold text-black transition-all flex items-center justify-center gap-2 ${status === 'success'
-                                    ? 'bg-green-500 cursor-default'
-                                    : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
+                                ? 'bg-green-500 cursor-default'
+                                : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
                         >
                             {status === 'loading' ? (
@@ -143,6 +143,10 @@ export default function Contact({ content }: ContactProps) {
                                 전송에 실패했습니다. 다시 시도해주세요.
                             </p>
                         )}
+
+                        <p className="text-gray-500 text-center text-sm mt-6 pt-6 border-t border-[#222]">
+                            별도의 이메일로 문의하고자 하시는 경우, <a href="mailto:insightbuild@daum.net" className="text-[var(--primary-yellow)] hover:underline">insightbuild@daum.net</a> 으로 문의주시기 바랍니다.
+                        </p>
                     </form>
                 </div>
             </div>

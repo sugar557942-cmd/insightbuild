@@ -23,7 +23,10 @@ export default function About({ content, portfolioItems }: AboutProps) {
         });
 
         // value 값으로 크기를 다르게 쓰기 위해 남겨둠
-        return Array.from(wordMap.entries()).map(([text, value]) => ({ text, value }));
+        return Array.from(wordMap.entries()).map(([text, value]) => ({
+            text,
+            value
+        }));
     }, [portfolioItems]);
 
     if (!content) return null;
@@ -71,15 +74,16 @@ export default function About({ content, portfolioItems }: AboutProps) {
 
                         {/* 단어 그리드 */}
                         <div className="absolute inset-0 flex items-center justify-center p-8">
-                            <div className="w-[80%] h-[80%] max-w-[260px] max-h-[260px] mx-auto grid grid-cols-3 sm:grid-cols-4 gap-2 place-items-center text-center">
+                            <div className="w-[90%] h-[90%] max-w-[400px] max-h-[400px] mx-auto flex flex-wrap justify-center items-center gap-4 content-center">
                                 {words.map((word: any, index: number) => {
-                                    // value에 따라 크기 살짝 차이 주기
-                                    const weight = word.value || 10;
-                                    const sizeClass =
-                                        weight > 40 ? 'text-xl' :
-                                        weight > 30 ? 'text-lg' :
-                                        weight > 20 ? 'text-base' :
-                                        weight > 10 ? 'text-sm' : 'text-xs';
+                                    // Hydration Error 방지를 위해 Math.random() 대신 결정론적 난수 생성 사용
+                                    // 단어 텍스트와 인덱스를 기반으로 항상 같은 값을 생성하도록 함
+                                    const seed = word.text.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) + index;
+                                    const pseudoRandom = (Math.sin(seed) + 1) / 2; // 0 ~ 1 사이 값
+
+                                    // Tailwind class 대신 inline style로 확실하게 크기 제어
+                                    // 기본 1rem(16px) 기준으로 1.2배 ~ 3.5배 사이로 설정
+                                    const randomSize = 1.2 + pseudoRandom * 2.3;
 
                                     const colors = ['text-[#FFD700]', 'text-[#FFAA00]', 'text-white', 'text-gray-200', 'text-gray-400'];
                                     const colorClass = colors[index % colors.length];
@@ -87,7 +91,10 @@ export default function About({ content, portfolioItems }: AboutProps) {
                                     return (
                                         <span
                                             key={word.text + index}
-                                            className={`${sizeClass} ${colorClass} font-bold leading-tight`}
+                                            className={`${colorClass} font-bold leading-tight transition-all duration-300 hover:scale-110 cursor-default`}
+                                            style={{
+                                                fontSize: `${randomSize}rem`
+                                            }}
                                         >
                                             {word.text}
                                         </span>
