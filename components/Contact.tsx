@@ -48,6 +48,8 @@ export default function Contact({ content }: ContactProps) {
             const validFiles = files.filter((f) => f !== null) as File[];
 
             // Upload all files
+            const uploadErrors: string[] = [];
+
             if (validFiles.length > 0) {
                 await Promise.all(validFiles.map(async (file) => {
                     const uploadFormData = new FormData();
@@ -64,12 +66,22 @@ export default function Contact({ content }: ContactProps) {
                             attachmentUrls.push(uploadData.url);
                         } else {
                             console.error('File upload failed for', file.name);
+                            uploadErrors.push(file.name);
                         }
                     } catch (err) {
                         console.error('Upload exception for', file.name, err);
+                        uploadErrors.push(file.name);
                     }
                 }));
             }
+
+            if (uploadErrors.length > 0) {
+                alert(`다음 파일 업로드에 실패했습니다: ${uploadErrors.join(', ')}\n파일 크기나 네트워크 상태를 확인해주세요.`);
+                setStatus('error'); // Or 'idle' to let them retry?
+                return; // Stop submission
+            }
+
+            console.log('Submitting contact form with attachments:', attachmentUrls);
 
             const res = await fetch('/api/contact', {
                 method: 'POST',
@@ -85,6 +97,7 @@ export default function Contact({ content }: ContactProps) {
                 setStatus('error');
             }
         } catch (error) {
+            console.error('Submission error:', error);
             setStatus('error');
         }
     };
