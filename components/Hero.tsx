@@ -9,10 +9,26 @@ interface HeroProps {
 
 export default function Hero({ content }: HeroProps) {
     const [offset, setOffset] = useState(0);
+    const [visitorStats, setVisitorStats] = useState<{ todayCount: number; totalCount: number } | null>(null);
 
     useEffect(() => {
         const handleScroll = () => setOffset(window.scrollY);
         window.addEventListener('scroll', handleScroll);
+
+        const fetchVisitors = async () => {
+            try {
+                const res = await fetch('/api/visitors');
+                if (res.ok) {
+                    const data = await res.json();
+                    setVisitorStats(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch visitor stats:', error);
+            }
+        };
+
+        fetchVisitors();
+
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
@@ -58,6 +74,24 @@ export default function Hero({ content }: HeroProps) {
             {/* Scroll Indicator */}
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-500">
                 <div className="w-[1px] h-16 bg-gradient-to-b from-transparent via-[var(--primary-yellow)] to-transparent"></div>
+            </div>
+
+            {/* Visitor Counter */}
+            <div className="absolute bottom-8 left-8 z-20 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-4 text-xs text-gray-400 animate-fade-in-up delay-500">
+                <div className="flex flex-col gap-1">
+                    <div className="flex justify-between gap-4">
+                        <span>Today:</span>
+                        <span className="text-[var(--primary-yellow)] font-mono">
+                            {visitorStats ? visitorStats.todayCount.toLocaleString() : '-'}
+                        </span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                        <span>Total:</span>
+                        <span className="text-[var(--primary-yellow)] font-mono">
+                            {visitorStats ? visitorStats.totalCount.toLocaleString() : '-'}
+                        </span>
+                    </div>
+                </div>
             </div>
         </section>
     );
