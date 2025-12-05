@@ -6,14 +6,20 @@ const resend = new Resend(process.env.RESEND_API_KEY!);
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, company, phone, message, field, attachmentUrl } = body;
+        const { name, company, phone, message, field, attachmentUrls } = body;
 
         const to = process.env.CONTACT_TO || 'insightbuild@daum.net';
 
-        // Construct attachment link if exists
-        const attachmentHtml = attachmentUrl
-            ? `<p><strong>첨부 파일:</strong> <a href="${attachmentUrl}" target="_blank">다운로드</a></p>`
-            : '';
+        // Construct attachment links if exist
+        let attachmentHtml = '';
+        if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
+            attachmentHtml = `<p><strong>첨부 파일:</strong><br>${attachmentUrls.map((url: string, index: number) =>
+                `<a href="${url}" target="_blank">다운로드 ${index + 1}</a>`
+            ).join('<br>')}</p>`;
+        } else if (body.attachmentUrl) {
+            // Fallback for single file (legacy or mismatch)
+            attachmentHtml = `<p><strong>첨부 파일:</strong> <a href="${body.attachmentUrl}" target="_blank">다운로드</a></p>`;
+        }
 
         const result = await resend.emails.send({
             // ★ 여기 아주 중요: contact@insightbuild.kr 로 고정

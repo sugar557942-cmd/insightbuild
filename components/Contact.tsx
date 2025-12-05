@@ -16,10 +16,27 @@ export default function Contact({ content }: ContactProps) {
         message: ''
     });
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<(File | null)[]>([null]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const newFiles = [...files];
+        if (e.target.files && e.target.files[0]) {
+            newFiles[index] = e.target.files[0];
+            // If the last slot is filled and we have less than 3 slots, add a new one
+            if (index === newFiles.length - 1 && newFiles.length < 3) {
+                newFiles.push(null);
+            }
+        } else {
+            // Clearing a file
+            newFiles[index] = null;
+        }
+        setFiles(newFiles);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -27,40 +44,43 @@ export default function Contact({ content }: ContactProps) {
         setStatus('loading');
 
         try {
-            let attachmentUrl = '';
+            const attachmentUrls: string[] = [];
+            const validFiles = files.filter((f) => f !== null) as File[];
 
-            if (file) {
-                const uploadFormData = new FormData();
-                uploadFormData.append('file', file);
+            // Upload all files
+            if (validFiles.length > 0) {
+                await Promise.all(validFiles.map(async (file) => {
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('file', file);
 
-                const uploadRes = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: uploadFormData,
-                });
+                    try {
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: uploadFormData,
+                        });
 
-                if (uploadRes.ok) {
-                    const uploadData = await uploadRes.json();
-                    attachmentUrl = uploadData.url;
-                } else {
-                    console.error('File upload failed');
-                    // Continue without file or throw error? Let's continue but maybe warn?
-                    // For now, let's just proceed.
-                }
+                        if (uploadRes.ok) {
+                            const uploadData = await uploadRes.json();
+                            attachmentUrls.push(uploadData.url);
+                        } else {
+                            console.error('File upload failed for', file.name);
+                        }
+                    } catch (err) {
+                        console.error('Upload exception for', file.name, err);
+                    }
+                }));
             }
 
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, attachmentUrl }),
+                body: JSON.stringify({ ...formData, attachmentUrls }),
             });
 
             if (res.ok) {
                 setStatus('success');
                 setFormData({ name: '', company: '', phone: '', field: '', message: '' });
-                setFile(null);
-                // Reset file input value manually if needed, but react state handling might be enough if we controlled it.
-                // Since input is uncontrolled for value, we might need a ref to clear it.
-                // For simplicity, just clearing state.
+                setFiles([null]);
             } else {
                 setStatus('error');
             }
@@ -158,13 +178,30 @@ export default function Contact({ content }: ContactProps) {
                             />
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-400">첨부 파일 (선택사항)</label>
-                            <input
-                                type="file"
-                                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#222] file:text-[var(--primary-yellow)] hover:file:bg-[#333]"
-                            />
+                        <div className="space-y-4">
+                            <label className="text-sm font-bold text-gray-400">첨부 파일 (선택사항, 최대 3개)</label>
+                            {/* File Inputs Dynamic Rendering */}
+                            {files.map((fileItem, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                    <input
+                                        type="file"
+                                        onChange={(e) => handleFileChange(index, e)}
+                                        className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#222] file:text-[var(--primary-yellow)] hover:file:bg-[#333]"
+                                    />
+                                    {index < files.length - 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newFiles = files.filter((_, i) => i !== index);
+                                                setFiles(newFiles);
+                                            }}
+                                            className="text-red-500 hover:text-red-400 text-sm px-2"
+                                        >
+                                            삭제
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
                         </div>
 
                         <button
