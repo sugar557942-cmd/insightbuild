@@ -20,7 +20,10 @@ export default function Hero({ content }: HeroProps) {
                 const res = await fetch('/api/visitors');
                 if (res.ok) {
                     const data = await res.json();
+                    console.log('Visitor data fetched:', data);
                     setVisitorStats(data);
+                } else {
+                    console.error('Visitor fetch failed:', res.status);
                 }
             } catch (error) {
                 console.error('Failed to fetch visitor stats:', error);
@@ -82,13 +85,13 @@ export default function Hero({ content }: HeroProps) {
                     <div className="flex justify-between gap-6 items-center">
                         <span className="text-base font-medium">Today:</span>
                         <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
-                            {visitorStats ? visitorStats.todayCount.toLocaleString() : '-'}
+                            {visitorStats?.todayCount !== undefined ? visitorStats.todayCount.toLocaleString() : '-'}
                         </span>
                     </div>
                     <div className="flex justify-between gap-6 items-center">
                         <span className="text-base font-medium">Total:</span>
                         <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
-                            {visitorStats ? visitorStats.totalCount.toLocaleString() : '-'}
+                            {visitorStats?.totalCount !== undefined ? visitorStats.totalCount.toLocaleString() : '-'}
                         </span>
                     </div>
                 </div>

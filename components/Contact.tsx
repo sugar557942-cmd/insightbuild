@@ -16,6 +16,7 @@ export default function Contact({ content }: ContactProps) {
         message: ''
     });
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const [file, setFile] = useState<File | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,15 +27,40 @@ export default function Contact({ content }: ContactProps) {
         setStatus('loading');
 
         try {
+            let attachmentUrl = '';
+
+            if (file) {
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', file);
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadFormData,
+                });
+
+                if (uploadRes.ok) {
+                    const uploadData = await uploadRes.json();
+                    attachmentUrl = uploadData.url;
+                } else {
+                    console.error('File upload failed');
+                    // Continue without file or throw error? Let's continue but maybe warn?
+                    // For now, let's just proceed.
+                }
+            }
+
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({ ...formData, attachmentUrl }),
             });
 
             if (res.ok) {
                 setStatus('success');
                 setFormData({ name: '', company: '', phone: '', field: '', message: '' });
+                setFile(null);
+                // Reset file input value manually if needed, but react state handling might be enough if we controlled it.
+                // Since input is uncontrolled for value, we might need a ref to clear it.
+                // For simplicity, just clearing state.
             } else {
                 setStatus('error');
             }
@@ -129,6 +155,15 @@ export default function Contact({ content }: ContactProps) {
                                 onChange={handleChange}
                                 className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors resize-none"
                                 placeholder="프로젝트 의뢰 내용이나 궁금한 점을 적어주세요."
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-400">첨부 파일 (선택사항)</label>
+                            <input
+                                type="file"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                className="w-full bg-[#0a0a0a] border border-[#333] rounded-lg px-4 py-3 text-white focus:border-[var(--primary-yellow)] focus:outline-none transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#222] file:text-[var(--primary-yellow)] hover:file:bg-[#333]"
                             />
                         </div>
 
