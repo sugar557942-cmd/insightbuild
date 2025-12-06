@@ -1,33 +1,86 @@
 import { NextResponse } from 'next/server';
+import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
 import path from 'path';
 
-const contentPath = path.join(process.cwd(), 'data', 'content.json');
+export const dynamic = 'force-dynamic';
+
+// GCS Configuration
+const storage = new Storage({
+    projectId: process.env.GCP_PROJECT_ID,
+    credentials: {
+        client_email: process.env.GCP_CLIENT_EMAIL,
+        private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+});
+
+const bucketName = process.env.GCS_BUCKET_NAME || process.env.GCP_BUCKET_NAME;
+const fileName = 'content.json';
+const localDataPath = path.join(process.cwd(), 'data', 'content.json');
 
 export async function GET() {
-    try {
-        const fileContents = fs.readFileSync(contentPath, 'utf8');
-        const data = JSON.parse(fileContents);
-        return NextResponse.json(data);
-    } catch (error) {
-        return NextResponse.json({ error: 'Failed to read content' }, { status: 500 });
+    // 1. Try reading from GCS first
+    if (bucketName) {
+        try {
+            const bucket = storage.bucket(bucketName);
+            const file = bucket.file(fileName);
+            const [exists] = await file.exists();
+
+            if (exists) {
+                const [content] = await file.download();
+                const data = JSON.parse(content.toString('utf8'));
+                return NextResponse.json(data);
+            }
+        } catch (error) {
+            console.error('Content API: GCS read failed', error);
+        }
     }
+
+    // 2. Fallback: Read local file (Seed data or if GCS fails/missing)
+    try {
+        if (fs.existsSync(localDataPath)) {
+            const fileContents = fs.readFileSync(localDataPath, 'utf8');
+            const data = JSON.parse(fileContents);
+            return NextResponse.json(data);
+        }
+    } catch (error) {
+        console.error('Content API: Local read failed', error);
+    }
+
+    return NextResponse.json({ error: 'Failed to load content' }, { status: 500 });
 }
 
 export async function POST(request: Request) {
+    if (!bucketName) {
+        return NextResponse.json({ error: 'Server Error: GCS_BUCKET_NAME not configured' }, { status: 500 });
+    }
+
     try {
         const body = await request.json();
+        const bucket = storage.bucket(bucketName);
+        const file = bucket.file(fileName);
 
-        // Ensure directory exists
-        const dir = path.dirname(contentPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
+        // Write to GCS
+        await file.save(JSON.stringify(body, null, 2), {
+            contentType: 'application/json',
+            resumable: false,
+        });
+
+        // Optional: Update local cache if we were doing ISR, but we are dynamic.
+        // We can ALSO try to write to local fs for dev convenience, but suppress error if it fails (prod).
+        try {
+            if (process.env.NODE_ENV === 'development') {
+                const dir = path.dirname(localDataPath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(localDataPath, JSON.stringify(body, null, 2), 'utf8');
+            }
+        } catch (e) {
+            // Ignore write errors to local FS (expected in prod)
         }
 
-        fs.writeFileSync(contentPath, JSON.stringify(body, null, 2), 'utf8');
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('Content update error:', error);
+        console.error('Content Update Error:', error);
         return NextResponse.json({ error: 'Failed to update content', details: error.message }, { status: 500 });
     }
 }

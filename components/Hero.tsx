@@ -85,13 +85,13 @@ export default function Hero({ content }: HeroProps) {
                     <div className="flex justify-between gap-6 items-center">
                         <span className="text-base font-medium">Today:</span>
                         <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
-                            {visitorStats?.todayCount !== undefined ? visitorStats.todayCount.toLocaleString() : '-'}
+                            {visitorStats?.todayCount?.toLocaleString() ?? '0'}
                         </span>
                     </div>
                     <div className="flex justify-between gap-6 items-center">
                         <span className="text-base font-medium">Total:</span>
                         <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
-                            {visitorStats?.totalCount !== undefined ? visitorStats.totalCount.toLocaleString() : '-'}
+                            {visitorStats?.totalCount?.toLocaleString() ?? '0'}
                         </span>
                     </div>
                 </div>
