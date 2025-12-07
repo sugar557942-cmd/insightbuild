@@ -1,30 +1,59 @@
+// app/api/contact/route.ts
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+// 이 라우트는 항상 동적으로, Node 런타임에서만 실행되게 지정
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
     try {
-        // Parse the request body
-        const body = await request.json();
-        const { name, email, phone, company, field, message, to, attachmentUrls } = body;
-
-        // Basic validation
-        if (!name || !email || !phone || !company || !message || !to) {
+        // 환경변수 체크 (없으면 바로 500 리턴)
+        if (!process.env.RESEND_API_KEY) {
+            console.error('RESEND_API_KEY가 설정되어 있지 않습니다.');
             return NextResponse.json(
-                { error: '필수 입력 항목이 누락되었습니다.' },
-                { status: 400 },
+                { error: '메일 설정 오류(환경 변수 미설정)' },
+                { status: 500 }
             );
         }
 
-        // Construct attachment links HTML
+        // 여기서 Resend 인스턴스를 생성 (요청 올 때마다, 하지만 라우트 트래픽이 많지 않으니 상관 없음)
+        const resend = new Resend(process.env.RESEND_API_KEY);
+
+        const body = await request.json();
+        const { name, email, phone, company, field, message, to, attachmentUrls } = body;
+
+        // 기본 검증
+        if (!name || !email || !phone || !company || !message || !to) {
+            return NextResponse.json(
+                { error: '필수 입력 항목이 누락되었습니다.' },
+                { status: 400 }
+            );
+        }
+
+        // 첨부파일 링크 HTML 생성
         let attachmentHtml = '';
         if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
-            attachmentHtml = attachmentUrls.map((url: string, index: number) =>
-                `<a href="${url}" target="_blank" style="display: inline-block; padding: 10px 15px; margin: 5px 0; background-color: #f1f1f1; color: #333; text-decoration: none; border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">📄 첨부파일 ${index + 1} 다운로드</a>`
-            ).join('<br>');
+            attachmentHtml = attachmentUrls
+                .map(
+                    (url: string, index: number) => `
+            <a href="${url}" target="_blank"
+               style="display: inline-block; padding: 10px 15px; margin: 5px 0;
+                      background-color: #f1f1f1; color: #333; text-decoration: none;
+                      border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
+              📄 첨부파일 ${index + 1} 다운로드
+            </a>`
+                )
+                .join('<br>');
         } else if (body.attachmentUrl) {
-            attachmentHtml = `<a href="${body.attachmentUrl}" target="_blank" style="display: inline-block; padding: 10px 15px; margin: 5px 0; background-color: #f1f1f1; color: #333; text-decoration: none; border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">📄 첨부파일 다운로드</a>`;
+            const url = body.attachmentUrl as string;
+            attachmentHtml = `
+        <a href="${url}" target="_blank"
+           style="display: inline-block; padding: 10px 15px; margin: 5px 0;
+                  background-color: #f1f1f1; color: #333; text-decoration: none;
+                  border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
+          📄 첨부파일 다운로드
+        </a>`;
         }
 
         const emailHtml = `
@@ -50,7 +79,9 @@ export async function POST(request: Request) {
             <h1>INSIGHTBUILD</h1>
         </div>
         <div class="content">
-            <h2 style="margin-top: 0; margin-bottom: 30px; border-bottom: 2px solid #FFD700; padding-bottom: 10px; display: inline-block;">새로운 문의가 도착했습니다</h2>
+            <h2 style="margin-top: 0; margin-bottom: 30px; border-bottom: 2px solid #FFD700; padding-bottom: 10px; display: inline-block;">
+              새로운 문의가 도착했습니다
+            </h2>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
@@ -76,14 +107,17 @@ export async function POST(request: Request) {
                 ${(message || '').replace(/\n/g, '<br>')}
             </div>
 
-            ${attachmentHtml ? `
+            ${attachmentHtml
+                ? `
                 <div style="margin-top: 30px;">
                     <span class="label">첨부 파일</span>
                     <div style="margin-top: 10px;">
                         ${attachmentHtml}
                     </div>
                 </div>
-            ` : ''}
+            `
+                : ''
+            }
         </div>
         <div class="footer">
             <p>본 메일은 인사이트빌드 홈페이지 문의 폼을 통해 발송되었습니다.</p>
@@ -92,11 +126,11 @@ export async function POST(request: Request) {
     </div>
 </body>
 </html>
-        `;
+    `;
 
         const result = await resend.emails.send({
             from: 'Insightbuild <contact@insightbuild.kr>',
-            to,
+            to, // 예: 'insightbuild@daum.net'
             subject: `[${field || '문의'}] 인사이트빌드 홈페이지 문의 접수 (${name}님)`,
             html: emailHtml,
         });
@@ -110,8 +144,8 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error('Contact API error details:', error);
         return NextResponse.json(
-            { error: '전송에 실패했습니다.', details: error.message },
-            { status: 500 },
+            { error: '전송에 실패했습니다.', details: error?.message },
+            { status: 500 }
         );
     }
 }
