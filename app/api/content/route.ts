@@ -51,33 +51,53 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-    if (!bucketName) {
-        return NextResponse.json({ error: 'Server Error: GCS_BUCKET_NAME not configured' }, { status: 500 });
-    }
-
     try {
         const body = await request.json();
-        const bucket = storage.bucket(bucketName);
-        const file = bucket.file(fileName);
+        const contentString = JSON.stringify(body, null, 2);
 
-        // Write to GCS
-        await file.save(JSON.stringify(body, null, 2), {
-            contentType: 'application/json',
-            resumable: false,
-        });
+        let gcsSuccess = false;
+        let localSuccess = false;
+        const errors = [];
 
-        // Write to local FS as well for persistence in this environment (VPS/Container with volume)
-        // This ensures that even if GCS is not used, we persist the data locally.
+        // 1. Try GCS Write if configured
+        if (bucketName) {
+            try {
+                const bucket = storage.bucket(bucketName);
+                const file = bucket.file(fileName);
+
+                await file.save(contentString, {
+                    contentType: 'application/json',
+                    resumable: false,
+                });
+                gcsSuccess = true;
+            } catch (error: any) {
+                console.error('GCS Save Error:', error);
+                errors.push(`GCS: ${error.message}`);
+            }
+        }
+
+        // 2. Try Local FS Write (Always attempted as fallback or primary)
         try {
             const dir = path.dirname(localDataPath);
             if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(localDataPath, JSON.stringify(body, null, 2), 'utf8');
-        } catch (e) {
-            console.error('Local backup write failed:', e);
-            // Don't fail the request if GCS succeeded or if this is just a backup
+            fs.writeFileSync(localDataPath, contentString, 'utf8');
+            localSuccess = true;
+        } catch (error: any) {
+            console.error('Local FS Save Error:', error);
+            errors.push(`Local: ${error.message}`);
         }
 
-        return NextResponse.json({ success: true });
+        // 3. Return result
+        if (gcsSuccess || localSuccess) {
+            return NextResponse.json({
+                success: true,
+                message: 'Content saved successfully',
+                savedTo: { gcs: gcsSuccess, local: localSuccess }
+            });
+        } else {
+            throw new Error(`Failed to save to any storage. Errors: ${errors.join(', ')}`);
+        }
+
     } catch (error: any) {
         console.error('Content Update Error:', error);
         return NextResponse.json({ error: 'Failed to update content', details: error.message }, { status: 500 });
