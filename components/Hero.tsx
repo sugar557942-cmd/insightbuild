@@ -53,10 +53,10 @@ export default function Hero({ content }: HeroProps) {
             </div>
 
             <div className="container relative z-10 px-4 text-center">
-                <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-6 animate-fade-in-up">
+                <h1 className="text-[13vw] md:text-8xl font-bold tracking-tighter mb-6 animate-fade-in-up whitespace-nowrap">
                     INSIGHT<span className="text-gradient">BUILD</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8 font-light leading-relaxed animate-fade-in-up delay-100">
+                <p className="text-lg md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8 font-light leading-relaxed animate-fade-in-up delay-100 px-4">
                     {content.subtitle}
                 </p>
                 <p className="text-gray-400 max-w-2xl mx-auto mb-12 animate-fade-in-up delay-200 hidden md:block whitespace-pre-line">
@@ -64,33 +64,34 @@ export default function Hero({ content }: HeroProps) {
                 </p>
 
                 <div className="flex flex-col md:flex-row gap-4 justify-center items-center animate-fade-in-up delay-300">
-                    <a href="#services" className="btn-primary group">
+                    <a href="#services" className="btn-primary group w-full md:w-auto justify-center">
                         {content.buttonPrimary}
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                     </a>
-                    <a href="#portfolio" className="btn-outline">
+                    <a href="#portfolio" className="btn-outline w-full md:w-auto justify-center">
                         {content.buttonSecondary}
                     </a>
                 </div>
             </div>
 
             {/* Scroll Indicator */}
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-500">
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-gray-500 hidden md:block">
                 <div className="w-[1px] h-16 bg-gradient-to-b from-transparent via-[var(--primary-yellow)] to-transparent"></div>
             </div>
 
             {/* Visitor Counter */}
-            <div className="absolute bottom-24 left-10 z-20 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-6 text-sm text-gray-400 animate-fade-in-up delay-500 min-w-[180px]">
-                <div className="flex flex-col gap-2">
-                    <div className="flex justify-between gap-6 items-center">
-                        <span className="text-base font-medium">Today:</span>
-                        <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-10 md:bottom-24 z-20 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg p-4 md:p-6 text-sm text-gray-400 animate-fade-in-up delay-500 w-[90%] md:w-auto md:min-w-[180px]">
+                <div className="flex md:flex-col gap-4 md:gap-2 justify-around md:justify-start">
+                    <div className="flex flex-col md:flex-row justify-between gap-1 md:gap-6 items-center">
+                        <span className="text-xs md:text-base font-medium">Today</span>
+                        <span className="text-[var(--primary-yellow)] font-mono text-lg md:text-xl font-bold">
                             {visitorStats?.todayCount?.toLocaleString() ?? '0'}
                         </span>
                     </div>
-                    <div className="flex justify-between gap-6 items-center">
-                        <span className="text-base font-medium">Total:</span>
-                        <span className="text-[var(--primary-yellow)] font-mono text-xl font-bold">
+                    <div className="hidden md:block w-full h-[1px] bg-white/10"></div>
+                    <div className="flex flex-col md:flex-row justify-between gap-1 md:gap-6 items-center">
+                        <span className="text-xs md:text-base font-medium">Total</span>
+                        <span className="text-[var(--primary-yellow)] font-mono text-lg md:text-xl font-bold">
                             {visitorStats?.totalCount?.toLocaleString() ?? '0'}
                         </span>
                     </div>

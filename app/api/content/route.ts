@@ -66,16 +66,15 @@ export async function POST(request: Request) {
             resumable: false,
         });
 
-        // Optional: Update local cache if we were doing ISR, but we are dynamic.
-        // We can ALSO try to write to local fs for dev convenience, but suppress error if it fails (prod).
+        // Write to local FS as well for persistence in this environment (VPS/Container with volume)
+        // This ensures that even if GCS is not used, we persist the data locally.
         try {
-            if (process.env.NODE_ENV === 'development') {
-                const dir = path.dirname(localDataPath);
-                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                fs.writeFileSync(localDataPath, JSON.stringify(body, null, 2), 'utf8');
-            }
+            const dir = path.dirname(localDataPath);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(localDataPath, JSON.stringify(body, null, 2), 'utf8');
         } catch (e) {
-            // Ignore write errors to local FS (expected in prod)
+            console.error('Local backup write failed:', e);
+            // Don't fail the request if GCS succeeded or if this is just a backup
         }
 
         return NextResponse.json({ success: true });

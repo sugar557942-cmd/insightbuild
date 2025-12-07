@@ -25,7 +25,7 @@ export default function Services({ content }: ServicesProps) {
                     {content.items.map((item: any, index: number) => (
                         <div
                             key={item.id}
-                            className="group relative p-8 rounded-2xl bg-[#111] border border-[#222] hover:border-[var(--primary-yellow)] transition-all duration-300 hover:-translate-y-2 cursor-hover"
+                            className="group relative p-6 md:p-8 rounded-2xl bg-[#111] border border-[#222] hover:border-[var(--primary-yellow)] transition-all duration-300 hover:-translate-y-2 cursor-hover"
                         >
                             <div className="absolute top-8 right-8 text-[#333] group-hover:text-[var(--primary-yellow)] transition-colors">
                                 <ArrowUpRight size={24} />

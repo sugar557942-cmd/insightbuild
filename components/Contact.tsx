@@ -127,7 +127,7 @@ export default function Contact({ content }: ContactProps) {
                     </p>
                 </div>
 
-                <div className="bg-[#111] border border-[#222] rounded-2xl p-8 md:p-12 shadow-2xl">
+                <div className="bg-[#111] border border-[#222] rounded-2xl p-5 md:p-12 shadow-2xl">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">

@@ -1,4 +1,7 @@
+import { headers } from 'next/headers';
 import Image from "next/image";
+
+export const dynamic = 'force-dynamic';
 import fs from 'fs';
 import path from 'path';
 import HomeClient from '@/components/HomeClient';
