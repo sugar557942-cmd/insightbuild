@@ -135,40 +135,14 @@ export async function POST(request: Request) {
 
                     await file.save(contentString, {
                         contentType: 'application/json',
-                        resumable: false,
-                    });
-                    gcsSuccess = true;
-                } catch (error: any) {
-                    console.error('Content API (dev): GCS Save Error', error);
-                    errors.push(`GCS: ${error.message}`);
-                }
-            }
-
-            try {
-                const dir = path.dirname(localDataPath);
-                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                fs.writeFileSync(localDataPath, contentString, 'utf8');
-                localSuccess = true;
-            } catch (error: any) {
-                console.error('Content API (dev): Local FS Save Error', error);
-                errors.push(`Local: ${error.message}`);
-            }
-        }
-
-        if (gcsSuccess || localSuccess) {
-            return NextResponse.json({
-                success: true,
-                message: 'Content saved successfully',
-                savedTo: { gcs: gcsSuccess, local: localSuccess, env: isProd ? 'prod' : 'dev' },
-            });
-        }
+                    }
 
         throw new Error(`Failed to save content. Errors: ${errors.join(', ')}`);
-    } catch (error: any) {
-        console.error('Content Update Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to update content', details: error.message },
-            { status: 500 },
-        );
-    }
-}
+                } catch (error: any) {
+                    console.error('Content Update Error:', error);
+                    return NextResponse.json(
+                        { error: 'Failed to update content', details: error.message },
+                        { status: 500 },
+                    );
+                }
+            }
