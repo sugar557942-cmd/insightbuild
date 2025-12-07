@@ -62,90 +62,98 @@ export async function POST(request: Request) {
                 .map(
                     (url: string, index: number) => `
             <a href="${url}" target="_blank"
-               style="display: inline-block; padding: 10px 15px; margin: 5px 0;
-                      background-color: #f1f1f1; color: #333; text-decoration: none;
-                      border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
-              📄 첨부파일 ${index + 1} 다운로드
+               style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
+                      background-color: #1a1a1a; color: #ffffff; text-decoration: none;
+                      border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
+              � 첨부파일 ${index + 1} 다운로드
             </a>`,
                 )
-                .join('<br>');
+                .join('');
         } else if (attachmentUrl) {
             const url = attachmentUrl as string;
             attachmentHtml = `
-        <a href="${url}" target="_blank"
-           style="display: inline-block; padding: 10px 15px; margin: 5px 0;
-                  background-color: #f1f1f1; color: #333; text-decoration: none;
-                  border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
-          📄 첨부파일 다운로드
-        </a>`;
+            <a href="${url}" target="_blank"
+               style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
+                      background-color: #1a1a1a; color: #ffffff; text-decoration: none;
+                      border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
+              � 첨부파일 다운로드
+            </a>`;
         }
 
         const emailHtml = `
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-        .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .header { background-color: #000000; padding: 30px 40px; text-align: center; }
-        .header h1 { color: #FFD700; margin: 0; font-size: 24px; letter-spacing: 2px; }
-        .content { padding: 40px; color: #333; line-height: 1.6; }
-        .label { color: #666; font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; display: block; }
-        .value { color: #000; font-size: 16px; margin-bottom: 20px; font-weight: 500; }
-        .message-box { background-color: #f9f9f9; padding: 20px; border-radius: 6px; border-left: 4px solid #FFD700; margin-top: 10px; }
-        .footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
-        .button-link { color: #000; text-decoration: underline; }
-    </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inquiry Notification</title>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>INSIGHTBUILD</h1>
-        </div>
-        <div class="content">
-            <h2 style="margin-top: 0; margin-bottom: 30px; border-bottom: 2px solid #FFD700; padding-bottom: 10px; display: inline-block;">
-              새로운 문의가 도착했습니다
-            </h2>
+<body style="font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #000000; color: #ffffff;">
+    <div style="width: 100%; background-color: #000000; padding: 60px 0;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 0 20px;">
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <span class="label">이름</span>
-                    <div class="value">${name}</div>
-                </div>
-                <div>
-                    <span class="label">연락처</span>
-                    <div class="value">${phone}</div>
-                </div>
-                <div>
-                    <span class="label">기관/기업명</span>
-                    <div class="value">${company}</div>
-                </div>
-                <div>
-                    <span class="label">문의 분야</span>
-                    <div class="value" style="color: #d4a000;">${field || '-'}</div>
-                </div>
+            <!-- Header Logo -->
+            <div style="border-bottom: 1px solid #333333; padding-bottom: 20px; margin-bottom: 50px;">
+                <h3 style="margin: 0; font-size: 12px; letter-spacing: 6px; color: #ffffff; text-transform: uppercase; font-weight: 700;">INSIGHTBUILD</h3>
             </div>
 
-            <span class="label" style="margin-top: 10px;">문의 내용</span>
-            <div class="message-box">
-                ${(message || '').replace(/\n/g, '<br>')}
+            <!-- Hero Title -->
+            <div style="margin-bottom: 60px;">
+                <h1 style="color: #FFD700; font-size: 52px; font-weight: 900; line-height: 1.0; margin: 0; letter-spacing: -1px;">
+                    NEW<br>INQUIRY
+                </h1>
+                <p style="margin: 15px 0 0 0; color: #666666; font-size: 14px; font-weight: 400;">
+                    새로운 문의가 접수되었습니다
+                </p>
             </div>
 
-            ${attachmentHtml
-                ? `
-                <div style="margin-top: 30px;">
-                    <span class="label">첨부 파일</span>
-                    <div style="margin-top: 10px;">
-                        ${attachmentHtml}
-                    </div>
-                </div>
-            `
-                : ''
-            }
-        </div>
-        <div class="footer">
-            <p>본 메일은 인사이트빌드 홈페이지 문의 폼을 통해 발송되었습니다.</p>
-            <p>© 2026 INSIGHTBUILD. All rights reserved.</p>
+            <!-- Grid Info -->
+            <div style="border-top: 4px solid #FFD700; padding-top: 40px; margin-bottom: 50px;">
+                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td width="50%" valign="top" style="padding-bottom: 40px; padding-right: 20px;">
+                            <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px;">NAME</span>
+                            <div style="font-size: 18px; color: #ffffff; font-weight: 500;">${name}</div>
+                        </td>
+                        <td width="50%" valign="top" style="padding-bottom: 40px;">
+                            <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px;">CONTACT</span>
+                            <div style="font-size: 18px; color: #ffffff; font-weight: 500; font-feature-settings: 'tnum';">${phone}</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td width="50%" valign="top" style="padding-bottom: 10px; padding-right: 20px;">
+                            <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px;">COMPANY</span>
+                            <div style="font-size: 18px; color: #ffffff; font-weight: 500;">${company}</div>
+                        </td>
+                        <td width="50%" valign="top" style="padding-bottom: 10px;">
+                            <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 10px; font-weight: 700; letter-spacing: 1px;">FIELD</span>
+                            <div style="font-size: 18px; color: #FFD700; font-weight: 700;">${field || '-'}</div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Message -->
+            <div style="border-top: 1px solid #333333; padding-top: 40px; padding-bottom: 40px;">
+                <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 25px; font-weight: 700; letter-spacing: 1px;">MESSAGE</span>
+                <div style="font-size: 16px; line-height: 1.8; color: #e0e0e0; white-space: pre-wrap;">${(message || '').replace(/\n/g, '<br>')}</div>
+            </div>
+
+            <!-- Attachments -->
+            ${attachmentHtml ? `
+            <div style="border-top: 1px solid #333333; padding-top: 40px; margin-bottom: 40px;">
+                <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 25px; font-weight: 700; letter-spacing: 1px;">ATTACHMENTS</span>
+                ${attachmentHtml}
+            </div>
+            ` : ''}
+
+            <!-- Footer -->
+            <div style="margin-top: 80px; padding-top: 20px; border-top: 1px solid #222222; font-size: 10px; color: #444444; text-align: left; text-transform: uppercase;">
+                <p style="margin: 0; line-height: 1.6;">
+                    Sent via Insightbuild Contact Form<br>
+                    © 2026 Insightbuild. All rights reserved.
+                </p>
+            </div>
         </div>
     </div>
 </body>
