@@ -8,8 +8,11 @@ import HomeClient from '@/components/HomeClient';
 
 async function getContent() {
   const contentPath = path.join(process.cwd(), 'data', 'content.json');
+  console.log('[Home] Reading content from:', contentPath);
   const fileContents = fs.readFileSync(contentPath, 'utf8');
-  return JSON.parse(fileContents);
+  const data = JSON.parse(fileContents);
+  console.log('[Home] Content Title:', data.hero.title); // Verify content
+  return data;
 }
 
 export default async function Home() {

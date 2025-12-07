@@ -79,8 +79,10 @@ export async function POST(request: Request) {
         // 2. Try Local FS Write (Always attempted as fallback or primary)
         try {
             const dir = path.dirname(localDataPath);
+            console.log('[API] Writing content to:', localDataPath);
             if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
             fs.writeFileSync(localDataPath, contentString, 'utf8');
+            console.log('[API] Local write successful');
             localSuccess = true;
         } catch (error: any) {
             console.error('Local FS Save Error:', error);
