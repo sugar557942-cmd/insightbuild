@@ -9,12 +9,15 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
-        };
+        const handleScroll = () => setIsScrolled(window.scrollY > 50);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // 모바일 메뉴 열렸을 때 배경 스크롤 방지
+    useEffect(() => {
+        document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+    }, [isMobileMenuOpen]);
 
     const navItems = [
         { name: 'About', href: '#about' },
@@ -25,17 +28,18 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-black/80 backdrop-blur-md py-4' : 'bg-transparent py-6'
-                }`}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 
+                ${isScrolled ? 'bg-black/80 backdrop-blur-md py-4' : 'bg-transparent py-6'}
+            `}
         >
             <div className="container mx-auto flex justify-between items-center">
                 <Link href="/" className="text-2xl font-bold tracking-tighter text-white z-50">
                     INSIGHT<span className="text-[var(--primary-yellow)]">BUILD</span>
                 </Link>
 
-                {/* Desktop Nav */}
+                {/* Desktop Navigation */}
                 <nav className="hidden md:flex items-center gap-8">
-                    {navItems.map((item) => (
+                    {navItems.map(item => (
                         <Link
                             key={item.name}
                             href={item.href}
@@ -53,40 +57,43 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                     </button>
                 </nav>
 
-                {/* Mobile Menu Toggle */}
+                {/* Menu Toggle (mobile) */}
                 <button
                     className="md:hidden text-white z-50"
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 >
                     {isMobileMenuOpen ? <X /> : <Menu />}
                 </button>
+            </div>
 
-                {/* Mobile Nav */}
-                <div
-                    className={`fixed inset-0 bg-black flex flex-col items-center justify-center gap-8 transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-                        }`}
-                >
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.name}
-                            href={item.href}
-                            className="text-2xl font-bold text-white hover:text-[var(--primary-yellow)]"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                            {item.name}
-                        </Link>
-                    ))}
-                    <button
-                        onClick={() => {
-                            setIsMobileMenuOpen(false);
-                            onAdminClick();
-                        }}
-                        className="mt-4 flex items-center gap-2 text-sm font-bold px-4 py-2 border border-gray-700 rounded-full text-gray-400"
+            {/* Mobile Menu - container 밖 */}
+            <div
+                className={`fixed inset-0 min-h-screen bg-black flex flex-col items-center justify-center gap-8 
+                            transition-transform duration-300 md:hidden 
+                            ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
+                `}
+            >
+                {navItems.map(item => (
+                    <Link
+                        key={item.name}
+                        href={item.href}
+                        className="text-3xl font-bold text-white hover:text-[var(--primary-yellow)]"
+                        onClick={() => setIsMobileMenuOpen(false)}
                     >
-                        <Lock size={14} />
-                        관리자 모드
-                    </button>
-                </div>
+                        {item.name}
+                    </Link>
+                ))}
+
+                <button
+                    onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onAdminClick();
+                    }}
+                    className="mt-4 flex items-center gap-2 text-sm font-bold px-4 py-2 border border-gray-700 rounded-full text-gray-400"
+                >
+                    <Lock size={14} />
+                    관리자 모드
+                </button>
             </div>
         </header>
     );

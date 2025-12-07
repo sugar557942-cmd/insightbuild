@@ -7,6 +7,8 @@ import path from 'path';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 // GCS 설정
 const storage = new Storage({
     projectId: process.env.GCP_PROJECT_ID,
@@ -16,23 +18,52 @@ const storage = new Storage({
     },
 });
 
-const bucketName = process.env.GCS_BUCKET_NAME || process.env.GCP_BUCKET_NAME;
-const fileName = 'content.json';
+const bucketName =
+    process.env.GCS_BUCKET_NAME || process.env.GCP_BUCKET_NAME || '';
 
-// 개발 환경에서만 사용하는 seed 파일 경로
+const fileName = 'content.json';
 const localDataPath = path.join(process.cwd(), 'data', 'content.json');
 
-const isDev = process.env.NODE_ENV !== 'production';
-
-/**
- * GET /api/content
- *  - 우선 GCS에서 읽기
- *  - 개발 환경이고 GCS가 없거나 실패하면 로컬 파일에서 읽기
- */
+// GET: 콘텐츠 읽기
 export async function GET() {
-    // 1. GCS 우선
-    if (bucketName) {
+    // 1) 운영 환경: GCS 에서만 읽기
+    if (isProd) {
+        if (!bucketName) {
+            console.error('Content API: bucketName not set in production');
+            return NextResponse.json(
+                { error: 'Storage bucket is not configured' },
+                { status: 500 },
+            );
+        }
+
         try {
+            const bucket = storage.bucket(bucketName);
+            const file = bucket.file(fileName);
+            const [exists] = await file.exists();
+
+            if (!exists) {
+                console.error('Content API: content.json not found in GCS');
+                return NextResponse.json(
+                    { error: 'Content not found' },
+                    { status: 404 },
+                );
+            }
+
+            const [content] = await file.download();
+            const data = JSON.parse(content.toString('utf8'));
+            return NextResponse.json(data);
+        } catch (error) {
+            console.error('Content API: GCS read failed in production', error);
+            return NextResponse.json(
+                { error: 'Failed to load content from storage' },
+                { status: 500 },
+            );
+        }
+    }
+
+    // 2) 개발 환경: GCS → 로컬 파일 순으로 읽기
+    try {
+        if (bucketName) {
             const bucket = storage.bucket(bucketName);
             const file = bucket.file(fileName);
             const [exists] = await file.exists();
@@ -42,29 +73,19 @@ export async function GET() {
                 const data = JSON.parse(content.toString('utf8'));
                 return NextResponse.json(data);
             }
-        } catch (error) {
-            console.error('Content API: GCS read failed', error);
-            // 프로덕션이면 바로 에러 응답
-            if (!isDev) {
-                return NextResponse.json(
-                    { error: 'Failed to load content from GCS' },
-                    { status: 500 },
-                );
-            }
         }
+    } catch (error) {
+        console.error('Content API (dev): GCS read failed', error);
     }
 
-    // 2. (개발환경 한정) 로컬 파일 fallback
-    if (isDev) {
-        try {
-            if (fs.existsSync(localDataPath)) {
-                const fileContents = fs.readFileSync(localDataPath, 'utf8');
-                const data = JSON.parse(fileContents);
-                return NextResponse.json(data);
-            }
-        } catch (error) {
-            console.error('Content API: Local read failed', error);
+    try {
+        if (fs.existsSync(localDataPath)) {
+            const fileContents = fs.readFileSync(localDataPath, 'utf8');
+            const data = JSON.parse(fileContents);
+            return NextResponse.json(data);
         }
+    } catch (error) {
+        console.error('Content API (dev): Local read failed', error);
     }
 
     return NextResponse.json(
@@ -73,27 +94,25 @@ export async function GET() {
     );
 }
 
-/**
- * POST /api/content
- *  - 프로덕션: GCS에만 저장. 실패하면 500으로 돌려보냄
- *  - 개발: GCS 있으면 GCS, 없으면 로컬 파일에 저장
- */
+// POST: 콘텐츠 저장
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const contentString = JSON.stringify(body, null, 2);
 
-        // 프로덕션이고 GCS가 없으면 경고 로그 (하지만 로컬에는 저장 시도)
-        if (!bucketName && !isDev) {
-            console.warn('No GCS bucket configured in production. Falling back to local FS.');
-        }
-
-        let savedToGcs = false;
-        let savedToLocal = false;
+        let gcsSuccess = false;
+        let localSuccess = false;
         const errors: string[] = [];
 
-        // 1. GCS 저장 (가능하면 항상 시도)
-        if (bucketName) {
+        // 1) 운영 환경: GCS 에만 저장
+        if (isProd) {
+            if (!bucketName) {
+                return NextResponse.json(
+                    { error: 'Storage bucket is not configured' },
+                    { status: 500 },
+                );
+            }
+
             try {
                 const bucket = storage.bucket(bucketName);
                 const file = bucket.file(fileName);
@@ -102,38 +121,49 @@ export async function POST(request: Request) {
                     contentType: 'application/json',
                     resumable: false,
                 });
-                savedToGcs = true;
+                gcsSuccess = true;
             } catch (error: any) {
-                console.error('GCS Save Error:', error);
+                console.error('Content API: GCS Save Error (prod)', error);
                 errors.push(`GCS: ${error.message}`);
+            }
+        } else {
+            // 2) 개발 환경: GCS + 로컬 파일 둘 다 시도
+            if (bucketName) {
+                try {
+                    const bucket = storage.bucket(bucketName);
+                    const file = bucket.file(fileName);
+
+                    await file.save(contentString, {
+                        contentType: 'application/json',
+                        resumable: false,
+                    });
+                    gcsSuccess = true;
+                } catch (error: any) {
+                    console.error('Content API (dev): GCS Save Error', error);
+                    errors.push(`GCS: ${error.message}`);
+                }
+            }
+
+            try {
+                const dir = path.dirname(localDataPath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                fs.writeFileSync(localDataPath, contentString, 'utf8');
+                localSuccess = true;
+            } catch (error: any) {
+                console.error('Content API (dev): Local FS Save Error', error);
+                errors.push(`Local: ${error.message}`);
             }
         }
 
-        // 2. Local FS Write (Always attempted as fallback or primary)
-        // 개발 환경뿐만 아니라, 프로덕션에서도 로컬 볼륨 저장을 위해 조건 제거
-        try {
-            const dir = path.dirname(localDataPath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-            fs.writeFileSync(localDataPath, contentString, 'utf8');
-            savedToLocal = true;
-        } catch (error: any) {
-            console.error('Local FS Save Error:', error);
-            errors.push(`Local: ${error.message}`);
-        }
-
-        // 3. 저장 성공 여부에 따라 응답
-        if (savedToGcs || savedToLocal) {
+        if (gcsSuccess || localSuccess) {
             return NextResponse.json({
                 success: true,
                 message: 'Content saved successfully',
-                savedTo: { gcs: savedToGcs, local: savedToLocal },
+                savedTo: { gcs: gcsSuccess, local: localSuccess, env: isProd ? 'prod' : 'dev' },
             });
         }
 
-        // 둘 다 실패한 경우
-        throw new Error(
-            `Failed to save content. Errors: ${errors.join(', ') || 'unknown'}`,
-        );
+        throw new Error(`Failed to save content. Errors: ${errors.join(', ')}`);
     } catch (error: any) {
         console.error('Content Update Error:', error);
         return NextResponse.json(
