@@ -6,33 +6,57 @@ import { Resend } from 'resend';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// 메일을 실제로 받을 주소 (env 없으면 기본값 사용)
+const CONTACT_TO =
+    process.env.CONTACT_TO_EMAIL || 'insightbuild@daum.net';
+
 export async function POST(request: Request) {
     try {
-        // 환경변수 체크 (없으면 바로 500 리턴)
+        // 환경변수 체크
         if (!process.env.RESEND_API_KEY) {
             console.error('RESEND_API_KEY가 설정되어 있지 않습니다.');
             return NextResponse.json(
                 { error: '메일 설정 오류(환경 변수 미설정)' },
-                { status: 500 }
+                { status: 500 },
             );
         }
 
-        // 여기서 Resend 인스턴스를 생성 (요청 올 때마다, 하지만 라우트 트래픽이 많지 않으니 상관 없음)
+        if (!CONTACT_TO) {
+            console.error('CONTACT_TO_EMAIL(수신자)가 설정되어 있지 않습니다.');
+            return NextResponse.json(
+                { error: '메일 수신자 설정 오류' },
+                { status: 500 },
+            );
+        }
+
+        // 요청마다 Resend 인스턴스 생성
         const resend = new Resend(process.env.RESEND_API_KEY);
 
         const body = await request.json();
-        const { name, email, phone, company, field, message, to, attachmentUrls } = body;
 
-        // 기본 검증
-        if (!name || !email || !phone || !company || !message || !to) {
+        // 프론트에서 실제로 보내는 필드 기준으로 구조분해
+        const {
+            name,
+            company,
+            phone,
+            field,
+            message,
+            attachmentUrls, // 여러 개일 때
+            attachmentUrl,  // 단일 파일일 때
+            email,          // (선택) 나중에 폼에 추가할 수도 있으니 남겨둠
+        } = body;
+
+        // 필수 항목 검증: 폼에 실제로 존재하는 것만 체크
+        if (!name || !company || !phone || !message) {
             return NextResponse.json(
                 { error: '필수 입력 항목이 누락되었습니다.' },
-                { status: 400 }
+                { status: 400 },
             );
         }
 
         // 첨부파일 링크 HTML 생성
         let attachmentHtml = '';
+
         if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
             attachmentHtml = attachmentUrls
                 .map(
@@ -42,11 +66,11 @@ export async function POST(request: Request) {
                       background-color: #f1f1f1; color: #333; text-decoration: none;
                       border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
               📄 첨부파일 ${index + 1} 다운로드
-            </a>`
+            </a>`,
                 )
                 .join('<br>');
-        } else if (body.attachmentUrl) {
-            const url = body.attachmentUrl as string;
+        } else if (attachmentUrl) {
+            const url = attachmentUrl as string;
             attachmentHtml = `
         <a href="${url}" target="_blank"
            style="display: inline-block; padding: 10px 15px; margin: 5px 0;
@@ -130,9 +154,11 @@ export async function POST(request: Request) {
 
         const result = await resend.emails.send({
             from: 'Insightbuild <contact@insightbuild.kr>',
-            to, // 예: 'insightbuild@daum.net'
+            to: CONTACT_TO, // 이제 body.to 대신 고정 수신자 사용
             subject: `[${field || '문의'}] 인사이트빌드 홈페이지 문의 접수 (${name}님)`,
             html: emailHtml,
+            // 폼에 email 필드를 나중에 추가한다면 이렇게 사용할 수 있음
+            // reply_to: email && email.trim() ? email : undefined,
         });
 
         console.log('Resend email result:', result);
@@ -145,7 +171,7 @@ export async function POST(request: Request) {
         console.error('Contact API error details:', error);
         return NextResponse.json(
             { error: '전송에 실패했습니다.', details: error?.message },
-            { status: 500 }
+            { status: 500 },
         );
     }
 }
