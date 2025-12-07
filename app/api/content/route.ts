@@ -104,15 +104,8 @@ export async function POST(request: Request) {
         let localSuccess = false;
         const errors: string[] = [];
 
-        // 1) 운영 환경: GCS 에만 저장
-        if (isProd) {
-            if (!bucketName) {
-                return NextResponse.json(
-                    { error: 'Storage bucket is not configured' },
-                    { status: 500 },
-                );
-            }
-
+        // 1. GCS 저장 시도 (설정된 경우)
+        if (bucketName) {
             try {
                 const bucket = storage.bucket(bucketName);
                 const file = bucket.file(fileName);
@@ -123,26 +116,44 @@ export async function POST(request: Request) {
                 });
                 gcsSuccess = true;
             } catch (error: any) {
-                console.error('Content API: GCS Save Error (prod)', error);
+                console.error('Content API: GCS Save Error', error);
                 errors.push(`GCS: ${error.message}`);
             }
-        } else {
-            // 2) 개발 환경: GCS + 로컬 파일 둘 다 시도
-            if (bucketName) {
-                try {
-                    const bucket = storage.bucket(bucketName);
-                    const file = bucket.file(fileName);
+        } else if (isProd) {
+            // 운영 환경인데 GCS가 없으면 로그
+            console.warn('Content API: No GCS bucket configured in production.');
+        }
 
-                    await file.save(contentString, {
-                        contentType: 'application/json',
-                    }
+        // 2. 로컬 파일 저장 시도 (항상 시도 - 운영/개발 무관)
+        // page.tsx가 항상 로컬 파일을 참조하므로, 싱크를 맞추기 위해 필수
+        try {
+            const dir = path.dirname(localDataPath);
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(localDataPath, contentString, 'utf8');
+            localSuccess = true;
+            console.log(`[API] Saved to local: ${localDataPath}`);
+        } catch (error: any) {
+            console.error('Content API: Local FS Save Error', error);
+            errors.push(`Local: ${error.message}`);
+        }
 
+        // 3. 결과 응답
+        if (gcsSuccess || localSuccess) {
+            return NextResponse.json({
+                success: true,
+                message: 'Content saved successfully',
+                savedTo: { gcs: gcsSuccess, local: localSuccess, env: isProd ? 'prod' : 'dev' },
+            });
+        }
+
+        // 4. 모두 실패
         throw new Error(`Failed to save content. Errors: ${errors.join(', ')}`);
-                } catch (error: any) {
-                    console.error('Content Update Error:', error);
-                    return NextResponse.json(
-                        { error: 'Failed to update content', details: error.message },
-                        { status: 500 },
-                    );
-                }
-            }
+
+    } catch (error: any) {
+        console.error('Content Update Error:', error);
+        return NextResponse.json(
+            { error: 'Failed to update content', details: error.message },
+            { status: 500 },
+        );
+    }
+}
