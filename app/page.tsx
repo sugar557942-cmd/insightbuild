@@ -5,19 +5,22 @@ export const dynamic = 'force-dynamic';
 import HomeClient from '@/components/HomeClient';
 
 async function getContent() {
-  const host = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-  console.log('[Home] Fetching content from API:', `${host}/api/content`);
+  const headersList = await headers();
+  const host = headersList.get('host');
+  const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+
+  // Construct dynamic base URL if host is available, otherwise fallback
+  const baseUrl = host ? `${protocol}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
+
+  console.log('[Home] Fetching content from API:', `${baseUrl}/api/content`);
 
   try {
-    const res = await fetch(`${host}/api/content`, {
+    const res = await fetch(`${baseUrl}/api/content`, {
       cache: 'no-store',
     });
 
     if (!res.ok) {
       console.error('[Home] Failed to fetch content:', res.status, res.statusText);
-      // Fallback or empty object if needed, but better to throw or handle graceful error
-      // For now, return a basic structure or re-throw
-      // But since we removed local read, we must rely on API.
       throw new Error(`Failed to fetch content: ${res.status}`);
     }
 
@@ -25,8 +28,6 @@ async function getContent() {
     return data;
   } catch (error) {
     console.error('[Home] Error fetching content:', error);
-    // In case of error (e.g. build time without server), we might need a fallback.
-    // However, user specifically asked to remove local file read.
     return {};
   }
 }
