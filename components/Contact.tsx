@@ -99,42 +99,61 @@ export default function Contact({ content }: ContactProps) {
             if (validFiles.length > 0) {
                 await Promise.all(
                     validFiles.map(async (file) => {
-                        const uploadFormData = new FormData();
-                        uploadFormData.append('file', file);
-
                         try {
-                            const uploadRes = await fetch('/api/upload', {
+                            // 1단계: 서버에서 서명 URL 요청
+                            const metaRes = await fetch('/api/contact-upload-url', {
                                 method: 'POST',
-                                body: uploadFormData,
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    filename: file.name,
+                                    contentType: file.type,
+                                    size: file.size,
+                                }),
                             });
 
-                            if (uploadRes.ok) {
-                                const uploadData = await uploadRes.json();
-                                attachments.push({
-                                    name: file.name,
-                                    url: uploadData.url
-                                });
-                            } else {
-                                const errorText = await uploadRes.text();
-                                console.error(
-                                    'File upload failed for',
-                                    file.name,
-                                    uploadRes.status,
-                                    errorText
-                                );
+                            if (!metaRes.ok) {
+                                const errorText = await metaRes.text();
                                 let cleanError = errorText;
                                 try {
                                     const jsonError = JSON.parse(errorText);
                                     if (jsonError.error) cleanError = jsonError.error;
-                                } catch (e) { /* ignore */ }
-
+                                } catch {
+                                    // ignore
+                                }
                                 uploadErrors.push(
-                                    `${file.name} (Error ${uploadRes.status}: ${cleanError})`
+                                    `${file.name} (업로드 URL 생성 실패: ${cleanError})`
                                 );
+                                return;
                             }
+
+                            const { uploadUrl, publicUrl } = await metaRes.json();
+
+                            // 2단계: 브라우저에서 GCS로 직접 업로드 (PUT)
+                            const putRes = await fetch(uploadUrl, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': file.type || 'application/octet-stream',
+                                },
+                                body: file,
+                            });
+
+                            if (!putRes.ok) {
+                                uploadErrors.push(
+                                    `${file.name} (업로드 실패: HTTP ${putRes.status})`
+                                );
+                                return;
+                            }
+
+                            // 성공 시 메일에서 쓸 URL 저장
+                            attachments.push({
+                                name: file.name,
+                                url: publicUrl,
+                            });
                         } catch (err: any) {
                             console.error('Upload exception for', file.name, err);
-                            uploadErrors.push(`${file.name} (${err.message})`);
+                            uploadErrors.push(
+                                `${file.name} (${err?.message || '알 수 없는 오류'})`
+                            );
                         }
                     })
                 );
@@ -150,6 +169,7 @@ export default function Contact({ content }: ContactProps) {
                 return;
             }
 
+            // 파일 업로드가 모두 끝난 뒤 문의 메일 전송
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -158,7 +178,13 @@ export default function Contact({ content }: ContactProps) {
 
             if (res.ok) {
                 setStatus('success');
-                setFormData({ name: '', company: '', phone: '', field: '', message: '' });
+                setFormData({
+                    name: '',
+                    company: '',
+                    phone: '',
+                    field: '',
+                    message: '',
+                });
                 setFiles([null]);
             } else {
                 setStatus('error');
@@ -288,9 +314,9 @@ export default function Contact({ content }: ContactProps) {
                         <button
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
-                            className={`w-full py-4 rounded-lg font-bold text.black transition-all flex items-center justify-center gap-2 ${status === 'success'
-                                ? 'bg-green-500 cursor-default'
-                                : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
+                            className={`w-full py-4 rounded-lg font-bold text-black transition-all flex items-center justify-center gap-2 ${status === 'success'
+                                    ? 'bg-green-500 cursor-default'
+                                    : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
                         >
                             {status === 'loading' ? (
