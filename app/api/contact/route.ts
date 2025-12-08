@@ -41,8 +41,9 @@ export async function POST(request: Request) {
             phone,
             field,
             message,
-            attachmentUrls, // 여러 개일 때
-            attachmentUrl,  // 단일 파일일 때
+            attachments,    // { name, url } []
+            attachmentUrls, // Legacy support (string[])
+            attachmentUrl,  // Legacy support (string)
             email,          // (선택) 나중에 폼에 추가할 수도 있으니 남겨둠
         } = body;
 
@@ -57,7 +58,19 @@ export async function POST(request: Request) {
         // 첨부파일 링크 HTML 생성
         let attachmentHtml = '';
 
-        if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
+        if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+            attachmentHtml = attachments
+                .map(
+                    (file: { name: string; url: string }, index: number) => `
+            <a href="${file.url}" target="_blank"
+               style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
+                      background-color: #1a1a1a; color: #ffffff; text-decoration: none;
+                      border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
+               ${file.name || `첨부파일 ${index + 1}`} 다운로드
+            </a>`,
+                )
+                .join('');
+        } else if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
             attachmentHtml = attachmentUrls
                 .map(
                     (url: string, index: number) => `
@@ -65,7 +78,7 @@ export async function POST(request: Request) {
                style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
                       background-color: #1a1a1a; color: #ffffff; text-decoration: none;
                       border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
-              � 첨부파일 ${index + 1} 다운로드
+               첨부파일 ${index + 1} 다운로드
             </a>`,
                 )
                 .join('');
@@ -76,7 +89,7 @@ export async function POST(request: Request) {
                style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
                       background-color: #1a1a1a; color: #ffffff; text-decoration: none;
                       border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
-              � 첨부파일 다운로드
+               첨부파일 다운로드
             </a>`;
         }
 

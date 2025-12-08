@@ -75,7 +75,7 @@ export default function Contact({ content }: ContactProps) {
         setStatus('loading');
 
         try {
-            const attachmentUrls: string[] = [];
+            const attachments: { name: string; url: string }[] = [];
             const validFiles = files.filter((f) => f !== null) as File[];
 
             // 업로드 전에 한 번 더 용량 검사 (우회 방지용)
@@ -110,7 +110,10 @@ export default function Contact({ content }: ContactProps) {
 
                             if (uploadRes.ok) {
                                 const uploadData = await uploadRes.json();
-                                attachmentUrls.push(uploadData.url);
+                                attachments.push({
+                                    name: file.name,
+                                    url: uploadData.url
+                                });
                             } else {
                                 const errorText = await uploadRes.text();
                                 console.error(
@@ -150,7 +153,7 @@ export default function Contact({ content }: ContactProps) {
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, attachmentUrls }),
+                body: JSON.stringify({ ...formData, attachments }),
             });
 
             if (res.ok) {
@@ -286,8 +289,8 @@ export default function Contact({ content }: ContactProps) {
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
                             className={`w-full py-4 rounded-lg font-bold text.black transition-all flex items-center justify-center gap-2 ${status === 'success'
-                                    ? 'bg-green-500 cursor-default'
-                                    : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
+                                ? 'bg-green-500 cursor-default'
+                                : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
                         >
                             {status === 'loading' ? (

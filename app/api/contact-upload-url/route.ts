@@ -1,9 +1,22 @@
 // app/api/contact-upload-url/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { Storage } from '@google-cloud/storage';
+
+export const dynamic = 'force-dynamic';
 
 const MAX_FILE_SIZE = 1024 * 1024 * 1024;        // 1GB (개별 파일)
 const MAX_TOTAL_SIZE = 1024 * 1024 * 1024;     // 1GB (프론트에서 합산 체크 용, 참고)
 
-// ...
+// Initialize storage
+const storage = new Storage({
+    projectId: process.env.GCP_PROJECT_ID,
+    credentials: {
+        client_email: process.env.GCP_CLIENT_EMAIL,
+        private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+});
+
+const bucketName = process.env.GCS_BUCKET_NAME || process.env.GCP_BUCKET_NAME;
 
 export async function POST(req: NextRequest) {
     try {
@@ -16,7 +29,14 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 개별 파일 10MB 제한
+        if (!bucketName) {
+            return NextResponse.json(
+                { error: '서버 설정 오류 (Bucket Name 미설정)' },
+                { status: 500 },
+            );
+        }
+
+        // 개별 파일 10MB 제한 -> 1GB로 상향됨 in user code
         if (size > MAX_FILE_SIZE) {
             return NextResponse.json(
                 { error: '총 첨부파일 용량은 1GB를 초과할 수 없습니다.' },
