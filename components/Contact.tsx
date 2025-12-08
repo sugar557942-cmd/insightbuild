@@ -78,7 +78,7 @@ export default function Contact({ content }: ContactProps) {
     const uploadFileWithProgress = (
         file: File,
         onProgress: (loaded: number, total: number) => void
-    ): Promise<{ name: string; url: string }> => {
+    ): Promise<{ name: string; url: string; objectName: string }> => {
         return new Promise(async (resolve, reject) => {
             try {
                 // 1단계: 서명된 업로드 URL 요청
@@ -102,7 +102,7 @@ export default function Contact({ content }: ContactProps) {
                     throw new Error(`Upload URL create failed: ${cleanError}`);
                 }
 
-                const { uploadUrl, publicUrl } = await metaRes.json();
+                const { uploadUrl, publicUrl, objectName } = await metaRes.json();
 
                 // 2단계: XHR로 GCS에 직접 업로드
                 const xhr = new XMLHttpRequest();
@@ -117,7 +117,7 @@ export default function Contact({ content }: ContactProps) {
 
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve({ name: file.name, url: publicUrl });
+                        resolve({ name: file.name, url: publicUrl, objectName });
                     } else {
                         reject(new Error(`Upload failed with status ${xhr.status}`));
                     }
@@ -160,7 +160,7 @@ export default function Contact({ content }: ContactProps) {
                 return;
             }
 
-            const attachments: { name: string; url: string }[] = [];
+            const attachments: { name: string; url: string; objectName: string }[] = [];
 
             if (validFiles.length > 0) {
                 // 전체 파일 크기 대비 진행률 관리를 위한 상태

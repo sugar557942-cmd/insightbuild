@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             uploadUrl,
             publicUrl,
+            objectName,
         });
     } catch (err) {
         console.error('signed url error:', err);

@@ -1,6 +1,7 @@
 // app/api/contact/route.ts
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { Storage } from '@google-cloud/storage';
 
 // 이 라우트는 항상 동적으로, Node 런타임에서만 실행되게 지정
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,17 @@ export const runtime = 'nodejs';
 // 메일을 실제로 받을 주소 (env 없으면 기본값 사용)
 const CONTACT_TO =
     process.env.CONTACT_TO_EMAIL || 'insightbuild@daum.net';
+
+// GCS 스토리지 초기화 (업로드용 라우트와 동일하게)
+const storage = new Storage({
+    projectId: process.env.GCP_PROJECT_ID,
+    credentials: {
+        client_email: process.env.GCP_CLIENT_EMAIL,
+        private_key: process.env.GCP_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+});
+
+const bucketName = process.env.GCS_BUCKET_NAME || process.env.GCP_BUCKET_NAME;
 
 export async function POST(request: Request) {
     try {
@@ -29,6 +41,14 @@ export async function POST(request: Request) {
             );
         }
 
+        if (!bucketName) {
+            console.error('GCS 버킷 이름이 설정되어 있지 않습니다.');
+            return NextResponse.json(
+                { error: '파일 저장소 설정 오류' },
+                { status: 500 },
+            );
+        }
+
         // 요청마다 Resend 인스턴스 생성
         const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -41,8 +61,16 @@ export async function POST(request: Request) {
             phone,
             field,
             message,
-            attachments,    // { name, url } []
-        } = body;
+            // 프론트에서 [{ name, objectName }] 으로 넘긴다고 가정
+            attachments,
+        } = body as {
+            name: string;
+            company: string;
+            phone: string;
+            field?: string;
+            message: string;
+            attachments?: { name?: string; url?: string; objectName?: string }[];
+        };
 
         // 필수 항목 검증: 폼에 실제로 존재하는 것만 체크
         if (!name || !company || !phone || !message) {
@@ -56,19 +84,43 @@ export async function POST(request: Request) {
         let attachmentHtml = '';
 
         if (attachments && Array.isArray(attachments) && attachments.length > 0) {
-            attachmentHtml = attachments
-                .map(
-                    (file: { name: string; url: string }, index: number) => `
-            <a href="${file.url}" target="_blank"
+            const bucket = storage.bucket(bucketName);
+
+            // 첨부파일 처리
+            const processedAttachments = await Promise.all(attachments.map(async (file, index) => {
+                let downloadUrl = file.url || '';
+
+                if (file.objectName) {
+                    try {
+                        const fileParams = bucket.file(file.objectName);
+                        // 다운로드용 Signed URL 생성
+                        const [signedUrl] = await fileParams.getSignedUrl({
+                            version: 'v4',
+                            action: 'read',
+                            expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7일 유효
+                            responseDisposition: `attachment; filename="${encodeURIComponent(file.name || 'attachment')}"`,
+                        });
+                        downloadUrl = signedUrl;
+                        console.log(`Generated signed URL for ${file.objectName}`);
+                    } catch (e) {
+                        console.error(`Failed to generate signed URL for ${file.objectName}:`, e);
+                        // 실패 시 publicUrl(file.url) 사용 (기존 동작 fallback)
+                    }
+                }
+
+                return `
+            <a href="${downloadUrl}" target="_blank"
                style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
                       background-color: #1a1a1a; color: #ffffff; text-decoration: none;
                       border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
                ${file.name || `첨부파일 ${index + 1}`} 다운로드
-            </a>`,
-                )
-                .join('');
+            </a>`;
+            }));
+
+            attachmentHtml = processedAttachments.join('');
         }
 
+        // 3단계: 메일 HTML 본문 구성
         const emailHtml = `
 <!DOCTYPE html>
 <html>
@@ -129,12 +181,15 @@ export async function POST(request: Request) {
             </div>
 
             <!-- Attachments -->
-            ${attachmentHtml ? `
+            ${attachmentHtml
+                ? `
             <div style="border-top: 1px solid #333333; padding-top: 40px; margin-bottom: 40px;">
                 <span style="font-size: 11px; color: #666666; display: block; margin-bottom: 25px; font-weight: 700; letter-spacing: 1px;">ATTACHMENTS</span>
                 ${attachmentHtml}
             </div>
-            ` : ''}
+            `
+                : ''
+            }
 
             <!-- Footer -->
             <div style="margin-top: 80px; padding-top: 20px; border-top: 1px solid #222222; font-size: 10px; color: #444444; text-align: left; text-transform: uppercase;">
@@ -151,10 +206,10 @@ export async function POST(request: Request) {
 
         const result = await resend.emails.send({
             from: 'Insightbuild <contact@insightbuild.kr>',
-            to: CONTACT_TO, // 이제 body.to 대신 고정 수신자 사용
+            to: CONTACT_TO,
             subject: `[${field || '문의'}] 인사이트빌드 홈페이지 문의 접수 (${name}님)`,
             html: emailHtml,
-            // 폼에 email 필드를 나중에 추가한다면 이렇게 사용할 수 있음
+            // 향후 폼에 email 필드가 생기면 reply_to 로 연결 가능
             // reply_to: email && email.trim() ? email : undefined,
         });
 
