@@ -7,6 +7,10 @@ interface ContactProps {
     content: any;
 }
 
+// 용량 제한 상수
+const MAX_FILE_SIZE = 10 * 1024 * 1024;        // 개별 파일 10MB
+const MAX_TOTAL_SIZE = 1024 * 1024 * 1024;     // 전체 합 1GB (3개까지)
+
 export default function Contact({ content }: ContactProps) {
     const [formData, setFormData] = useState({
         name: '',
@@ -24,18 +28,43 @@ export default function Contact({ content }: ContactProps) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // 파일 선택/변경 시 용량 검사 포함
     const handleFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
         const newFiles = [...files];
-        if (e.target.files && e.target.files[0]) {
-            newFiles[index] = e.target.files[0];
-            // If the last slot is filled and we have less than 3 slots, add a new one
-            if (index === newFiles.length - 1 && newFiles.length < 3) {
-                newFiles.push(null);
-            }
-        } else {
-            // Clearing a file
+
+        // 파일을 지우는 경우
+        if (!selectedFile) {
             newFiles[index] = null;
+            setFiles(newFiles);
+            return;
         }
+
+        // 1) 개별 파일 10MB 검사
+        if (selectedFile.size > MAX_FILE_SIZE) {
+            alert(`각 첨부파일은 최대 10MB까지만 업로드할 수 있습니다.\n(${selectedFile.name})`);
+            e.target.value = ''; // 같은 파일 다시 선택할 수 있도록 초기화
+            return;
+        }
+
+        // 2) 이 파일을 포함했을 때 전체 합 1GB 검사
+        newFiles[index] = selectedFile;
+        let totalSize = 0;
+        newFiles.forEach((f) => {
+            if (f) totalSize += f.size;
+        });
+
+        if (totalSize > MAX_TOTAL_SIZE) {
+            alert('첨부파일 전체 용량은 최대 1GB까지 업로드할 수 있습니다.');
+            e.target.value = '';
+            return;
+        }
+
+        // 마지막 슬롯이 채워졌고, 3개 미만이면 빈 슬롯 추가
+        if (index === newFiles.length - 1 && newFiles.length < 3) {
+            newFiles.push(null);
+        }
+
         setFiles(newFiles);
     };
 
@@ -47,46 +76,74 @@ export default function Contact({ content }: ContactProps) {
             const attachmentUrls: string[] = [];
             const validFiles = files.filter((f) => f !== null) as File[];
 
-            // Upload all files
+            // 업로드 전에 한 번 더 안전하게 용량 검사 (우회 방지용)
+            let totalSize = 0;
+            for (const file of validFiles) {
+                if (file.size > MAX_FILE_SIZE) {
+                    alert(`각 첨부파일은 최대 10MB까지만 업로드할 수 있습니다.\n(${file.name})`);
+                    setStatus('error');
+                    return;
+                }
+                totalSize += file.size;
+            }
+            if (totalSize > MAX_TOTAL_SIZE) {
+                alert('첨부파일 전체 용량은 최대 1GB까지 업로드할 수 있습니다.');
+                setStatus('error');
+                return;
+            }
+
+            // 파일 업로드
             const uploadErrors: string[] = [];
 
             if (validFiles.length > 0) {
-                await Promise.all(validFiles.map(async (file) => {
-                    const uploadFormData = new FormData();
-                    uploadFormData.append('file', file);
+                await Promise.all(
+                    validFiles.map(async (file) => {
+                        const uploadFormData = new FormData();
+                        uploadFormData.append('file', file);
 
-                    try {
-                        const uploadRes = await fetch('/api/upload', {
-                            method: 'POST',
-                            body: uploadFormData,
-                        });
+                        try {
+                            const uploadRes = await fetch('/api/upload', {
+                                method: 'POST',
+                                body: uploadFormData,
+                            });
 
-                        if (uploadRes.ok) {
-                            const uploadData = await uploadRes.json();
-                            attachmentUrls.push(uploadData.url);
-                        } else {
-                            const errorText = await uploadRes.text();
-                            console.error('File upload failed for', file.name, uploadRes.status, errorText);
-                            // Try to parse JSON error if possible
-                            let cleanError = errorText;
-                            try {
-                                const jsonError = JSON.parse(errorText);
-                                if (jsonError.error) cleanError = jsonError.error;
-                            } catch (e) { /* ignore */ }
+                            if (uploadRes.ok) {
+                                const uploadData = await uploadRes.json();
+                                attachmentUrls.push(uploadData.url);
+                            } else {
+                                const errorText = await uploadRes.text();
+                                console.error(
+                                    'File upload failed for',
+                                    file.name,
+                                    uploadRes.status,
+                                    errorText
+                                );
+                                let cleanError = errorText;
+                                try {
+                                    const jsonError = JSON.parse(errorText);
+                                    if (jsonError.error) cleanError = jsonError.error;
+                                } catch (e) { /* ignore */ }
 
-                            uploadErrors.push(`${file.name} (Error ${uploadRes.status}: ${cleanError})`);
+                                uploadErrors.push(
+                                    `${file.name} (Error ${uploadRes.status}: ${cleanError})`
+                                );
+                            }
+                        } catch (err: any) {
+                            console.error('Upload exception for', file.name, err);
+                            uploadErrors.push(`${file.name} (${err.message})`);
                         }
-                    } catch (err: any) {
-                        console.error('Upload exception for', file.name, err);
-                        uploadErrors.push(`${file.name} (${err.message})`);
-                    }
-                }));
+                    })
+                );
             }
 
             if (uploadErrors.length > 0) {
-                alert(`다음 파일 업로드에 실패했습니다: ${uploadErrors.join(', ')}\n파일 크기나 네트워크 상태를 확인해주세요.`);
-                setStatus('error'); // Or 'idle' to let them retry?
-                return; // Stop submission
+                alert(
+                    `다음 파일 업로드에 실패했습니다: ${uploadErrors.join(
+                        ', '
+                    )}\n파일 크기나 네트워크 상태를 확인해주세요.`
+                );
+                setStatus('error');
+                return;
             }
 
             console.log('Submitting contact form with attachments:', attachmentUrls);
@@ -200,8 +257,9 @@ export default function Contact({ content }: ContactProps) {
                         </div>
 
                         <div className="space-y-4">
-                            <label className="text-sm font-bold text-gray-400">첨부 파일 (선택사항, 최대 3개)</label>
-                            {/* File Inputs Dynamic Rendering */}
+                            <label className="text-sm font-bold text-gray-400">
+                                첨부 파일 (선택사항, 최대 3개)
+                            </label>
                             {files.map((fileItem, index) => (
                                 <div key={index} className="flex items-center gap-2">
                                     <input
@@ -229,8 +287,8 @@ export default function Contact({ content }: ContactProps) {
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
                             className={`w-full py-4 rounded-lg font-bold text-black transition-all flex items-center justify-center gap-2 ${status === 'success'
-                                ? 'bg-green-500 cursor-default'
-                                : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
+                                    ? 'bg-green-500 cursor-default'
+                                    : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
                         >
                             {status === 'loading' ? (
@@ -256,7 +314,14 @@ export default function Contact({ content }: ContactProps) {
                         )}
 
                         <p className="text-gray-500 text-center text-sm mt-6 pt-6 border-t border-[#222]">
-                            별도의 이메일로 문의하고자 하시는 경우, <a href="mailto:insightbuild@daum.net" className="text-[var(--primary-yellow)] hover:underline">insightbuild@daum.net</a> 으로 문의주시기 바랍니다.
+                            별도의 이메일로 문의하고자 하시는 경우,{' '}
+                            <a
+                                href="mailto:insightbuild@daum.net"
+                                className="text-[var(--primary-yellow)] hover:underline"
+                            >
+                                insightbuild@daum.net
+                            </a>{' '}
+                            으로 문의주시기 바랍니다.
                         </p>
                     </form>
                 </div>
