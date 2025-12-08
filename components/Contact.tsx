@@ -1,3 +1,5 @@
+// components/Contact.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -7,9 +9,9 @@ interface ContactProps {
     content: any;
 }
 
-// 용량 제한 상수
-const MAX_FILE_SIZE = 10 * 1024 * 1024;        // 개별 파일 10MB
-const MAX_TOTAL_SIZE = 1024 * 1024 * 1024;     // 전체 합 1GB (3개까지)
+// 용량 제한 상수 (개별 1GB, 총합 1GB)
+const MAX_FILE_SIZE = 1024 * 1024 * 1024;   // 1GB
+const MAX_TOTAL_SIZE = 1024 * 1024 * 1024;  // 1GB
 
 export default function Contact({ content }: ContactProps) {
     const [formData, setFormData] = useState({
@@ -28,39 +30,39 @@ export default function Contact({ content }: ContactProps) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // 파일 선택/변경 시 용량 검사 포함
     const handleFileChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
         const newFiles = [...files];
 
-        // 파일을 지우는 경우
+        // 파일 제거
         if (!selectedFile) {
             newFiles[index] = null;
             setFiles(newFiles);
             return;
         }
 
-        // 1) 개별 파일 10MB 검사
+        // 1) 개별 파일 1GB 검사
         if (selectedFile.size > MAX_FILE_SIZE) {
-            alert(`각 첨부파일은 최대 10MB까지만 업로드할 수 있습니다.\n(${selectedFile.name})`);
-            e.target.value = ''; // 같은 파일 다시 선택할 수 있도록 초기화
+            alert(`각 첨부파일은 최대 1GB까지만 업로드할 수 있습니다.\n(${selectedFile.name})`);
+            e.target.value = '';
             return;
         }
 
-        // 2) 이 파일을 포함했을 때 전체 합 1GB 검사
+        // 임시로 대입 후 총합 계산
         newFiles[index] = selectedFile;
-        let totalSize = 0;
-        newFiles.forEach((f) => {
-            if (f) totalSize += f.size;
-        });
+        const totalSize = newFiles.reduce(
+            (sum, f) => sum + (f ? f.size : 0),
+            0
+        );
 
+        // 2) 전체 합 1GB 검사
         if (totalSize > MAX_TOTAL_SIZE) {
             alert('첨부파일 전체 용량은 최대 1GB까지 업로드할 수 있습니다.');
             e.target.value = '';
             return;
         }
 
-        // 마지막 슬롯이 채워졌고, 3개 미만이면 빈 슬롯 추가
+        // 마지막 슬롯이 채워졌고, 슬롯 수가 3개 미만이면 빈 슬롯 추가
         if (index === newFiles.length - 1 && newFiles.length < 3) {
             newFiles.push(null);
         }
@@ -76,11 +78,11 @@ export default function Contact({ content }: ContactProps) {
             const attachmentUrls: string[] = [];
             const validFiles = files.filter((f) => f !== null) as File[];
 
-            // 업로드 전에 한 번 더 안전하게 용량 검사 (우회 방지용)
+            // 업로드 전에 한 번 더 용량 검사 (우회 방지용)
             let totalSize = 0;
             for (const file of validFiles) {
                 if (file.size > MAX_FILE_SIZE) {
-                    alert(`각 첨부파일은 최대 10MB까지만 업로드할 수 있습니다.\n(${file.name})`);
+                    alert(`각 첨부파일은 최대 1GB까지만 업로드할 수 있습니다.\n(${file.name})`);
                     setStatus('error');
                     return;
                 }
@@ -92,7 +94,6 @@ export default function Contact({ content }: ContactProps) {
                 return;
             }
 
-            // 파일 업로드
             const uploadErrors: string[] = [];
 
             if (validFiles.length > 0) {
@@ -145,8 +146,6 @@ export default function Contact({ content }: ContactProps) {
                 setStatus('error');
                 return;
             }
-
-            console.log('Submitting contact form with attachments:', attachmentUrls);
 
             const res = await fetch('/api/contact', {
                 method: 'POST',
@@ -286,7 +285,7 @@ export default function Contact({ content }: ContactProps) {
                         <button
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
-                            className={`w-full py-4 rounded-lg font-bold text-black transition-all flex items-center justify-center gap-2 ${status === 'success'
+                            className={`w-full py-4 rounded-lg font-bold text.black transition-all flex items-center justify-center gap-2 ${status === 'success'
                                     ? 'bg-green-500 cursor-default'
                                     : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
