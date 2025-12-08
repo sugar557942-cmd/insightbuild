@@ -24,6 +24,10 @@ export default function Contact({ content }: ContactProps) {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     const [files, setFiles] = useState<(File | null)[]>([null]);
 
+    // 업로드 진행률 상태 (0~100)
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
+    const [progressMessage, setProgressMessage] = useState<string>('');
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
@@ -70,15 +74,77 @@ export default function Contact({ content }: ContactProps) {
         setFiles(newFiles);
     };
 
+    // XMLHttpRequest로 파일 업로드 (진행률 추적용)
+    const uploadFileWithProgress = (
+        file: File,
+        onProgress: (loaded: number, total: number) => void
+    ): Promise<{ name: string; url: string }> => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // 1단계: 서명된 업로드 URL 요청
+                const metaRes = await fetch('/api/contact-upload-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: file.name,
+                        contentType: file.type,
+                        size: file.size,
+                    }),
+                });
+
+                if (!metaRes.ok) {
+                    const errorText = await metaRes.text();
+                    let cleanError = errorText;
+                    try {
+                        const jsonError = JSON.parse(errorText);
+                        if (jsonError.error) cleanError = jsonError.error;
+                    } catch { /* ignore */ }
+                    throw new Error(`Upload URL create failed: ${cleanError}`);
+                }
+
+                const { uploadUrl, publicUrl } = await metaRes.json();
+
+                // 2단계: XHR로 GCS에 직접 업로드
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', uploadUrl, true);
+                xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        onProgress(e.loaded, e.total);
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve({ name: file.name, url: publicUrl });
+                    } else {
+                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                    }
+                };
+
+                xhr.onerror = () => {
+                    reject(new Error('Network error during upload'));
+                };
+
+                xhr.send(file);
+
+            } catch (err) {
+                reject(err);
+            }
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus('loading');
+        setUploadProgress(0);
+        setProgressMessage('업로드 준비 중...');
 
         try {
-            const attachments: { name: string; url: string }[] = [];
             const validFiles = files.filter((f) => f !== null) as File[];
 
-            // 업로드 전에 한 번 더 용량 검사 (우회 방지용)
+            // 재검증
             let totalSize = 0;
             for (const file of validFiles) {
                 if (file.size > MAX_FILE_SIZE) {
@@ -94,80 +160,44 @@ export default function Contact({ content }: ContactProps) {
                 return;
             }
 
-            const uploadErrors: string[] = [];
+            const attachments: { name: string; url: string }[] = [];
 
             if (validFiles.length > 0) {
-                await Promise.all(
-                    validFiles.map(async (file) => {
-                        try {
-                            // 1단계: 서버에서 서명 URL 요청
-                            const metaRes = await fetch('/api/contact-upload-url', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    filename: file.name,
-                                    contentType: file.type,
-                                    size: file.size,
-                                }),
-                            });
+                // 전체 파일 크기 대비 진행률 관리를 위한 상태
+                const fileProgress = new Array(validFiles.length).fill(0);
+                const fileSizes = validFiles.map(f => f.size);
+                const totalUploadSize = fileSizes.reduce((a, b) => a + b, 0);
 
-                            if (!metaRes.ok) {
-                                const errorText = await metaRes.text();
-                                let cleanError = errorText;
-                                try {
-                                    const jsonError = JSON.parse(errorText);
-                                    if (jsonError.error) cleanError = jsonError.error;
-                                } catch {
-                                    // ignore
-                                }
-                                uploadErrors.push(
-                                    `${file.name} (업로드 URL 생성 실패: ${cleanError})`
-                                );
-                                return;
-                            }
+                const updateOverallProgress = () => {
+                    const totalLoaded = fileProgress.reduce((a, b) => a + b, 0);
+                    // 전체 중 몇 % 인지
+                    const percent = Math.round((totalLoaded / totalUploadSize) * 100);
+                    setUploadProgress(percent);
+                    setProgressMessage(`파일 업로드 중... ${percent}%`);
+                };
 
-                            const { uploadUrl, publicUrl } = await metaRes.json();
-
-                            // 2단계: 브라우저에서 GCS로 직접 업로드 (PUT)
-                            const putRes = await fetch(uploadUrl, {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': file.type || 'application/octet-stream',
-                                },
-                                body: file,
-                            });
-
-                            if (!putRes.ok) {
-                                uploadErrors.push(
-                                    `${file.name} (업로드 실패: HTTP ${putRes.status})`
-                                );
-                                return;
-                            }
-
-                            // 성공 시 메일에서 쓸 URL 저장
-                            attachments.push({
-                                name: file.name,
-                                url: publicUrl,
-                            });
-                        } catch (err: any) {
-                            console.error('Upload exception for', file.name, err);
-                            uploadErrors.push(
-                                `${file.name} (${err?.message || '알 수 없는 오류'})`
-                            );
-                        }
+                // 병렬 업로드 실행
+                const uploadPromises = validFiles.map((file, index) =>
+                    uploadFileWithProgress(file, (loaded, total) => {
+                        // 개별 파일의 loaded 바이트만 저장
+                        // (total은 해당 파일의 크기. fileSizes[index]와 같음)
+                        fileProgress[index] = loaded;
+                        updateOverallProgress();
                     })
                 );
+
+                try {
+                    const results = await Promise.all(uploadPromises);
+                    attachments.push(...results);
+                } catch (err: any) {
+                    console.error('Upload Error:', err);
+                    alert(`파일 업로드 중 오류가 발생했습니다.\n${err.message}`);
+                    setStatus('error');
+                    return;
+                }
             }
 
-            if (uploadErrors.length > 0) {
-                alert(
-                    `다음 파일 업로드에 실패했습니다: ${uploadErrors.join(
-                        ', '
-                    )}\n파일 크기나 네트워크 상태를 확인해주세요.`
-                );
-                setStatus('error');
-                return;
-            }
+            setProgressMessage('문의 전송 중...');
 
             // 파일 업로드가 모두 끝난 뒤 문의 메일 전송
             const res = await fetch('/api/contact', {
@@ -178,6 +208,7 @@ export default function Contact({ content }: ContactProps) {
 
             if (res.ok) {
                 setStatus('success');
+                setUploadProgress(100);
                 setFormData({
                     name: '',
                     company: '',
@@ -311,16 +342,37 @@ export default function Contact({ content }: ContactProps) {
                             ))}
                         </div>
 
+                        {/* Progress Bar Display */}
+                        {status === 'loading' && uploadProgress > 0 && uploadProgress < 100 && (
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-xs text-gray-400">
+                                    <span>{progressMessage}</span>
+                                    <span>{uploadProgress}%</span>
+                                </div>
+                                <div className="w-full bg-[#222] rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className="bg-[var(--primary-yellow)] h-full transition-all duration-300 ease-out"
+                                        style={{ width: `${uploadProgress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <button
                             type="submit"
                             disabled={status === 'loading' || status === 'success'}
                             className={`w-full py-4 rounded-lg font-bold text-black transition-all flex items-center justify-center gap-2 ${status === 'success'
-                                    ? 'bg-green-500 cursor-default'
-                                    : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
+                                ? 'bg-green-500 cursor-default'
+                                : 'bg-[var(--primary-yellow)] hover:bg-[#e6c200] hover:shadow-[0_0_20px_rgba(255,215,0,0.3)]'
                                 }`}
                         >
                             {status === 'loading' ? (
-                                <Loader2 className="animate-spin" />
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="animate-spin" />
+                                    <span>
+                                        {uploadProgress < 100 ? '업로드 중...' : '전송 중...'}
+                                    </span>
+                                </div>
                             ) : status === 'success' ? (
                                 '문의가 접수되었습니다'
                             ) : (

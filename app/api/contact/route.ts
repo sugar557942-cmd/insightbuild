@@ -42,9 +42,6 @@ export async function POST(request: Request) {
             field,
             message,
             attachments,    // { name, url } []
-            attachmentUrls, // Legacy support (string[])
-            attachmentUrl,  // Legacy support (string)
-            email,          // (선택) 나중에 폼에 추가할 수도 있으니 남겨둠
         } = body;
 
         // 필수 항목 검증: 폼에 실제로 존재하는 것만 체크
@@ -70,27 +67,6 @@ export async function POST(request: Request) {
             </a>`,
                 )
                 .join('');
-        } else if (attachmentUrls && Array.isArray(attachmentUrls) && attachmentUrls.length > 0) {
-            attachmentHtml = attachmentUrls
-                .map(
-                    (url: string, index: number) => `
-            <a href="${url}" target="_blank"
-               style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
-                      background-color: #1a1a1a; color: #ffffff; text-decoration: none;
-                      border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
-               첨부파일 ${index + 1} 다운로드
-            </a>`,
-                )
-                .join('');
-        } else if (attachmentUrl) {
-            const url = attachmentUrl as string;
-            attachmentHtml = `
-            <a href="${url}" target="_blank"
-               style="display: inline-block; padding: 16px 20px; margin: 0 0 10px 0; width: 100%; box-sizing: border-box;
-                      background-color: #1a1a1a; color: #ffffff; text-decoration: none;
-                      border: 1px solid #333; border-left: 4px solid #FFD700; font-size: 14px; font-weight: 500;">
-               첨부파일 다운로드
-            </a>`;
         }
 
         const emailHtml = `
