@@ -1,33 +1,22 @@
-import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
-import "./globals.css";
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Insightbuild | 인사이트빌드",
-  description: "깊이 있는 인사이트로, 당신의 사업을 빌드업합니다.",
-  // 여기에는 더 이상 verification 안 넣어도 됨
+  title: "인사이트빌드 | 비즈니스 모델 외주·컨설팅 전문 기업",
+  description:
+    "인사이트빌드는 비즈니스 모델 설계, 시장 분석, 실행 전략 컨설팅을 제공하는 전문 기업입니다. 기업 성장과 비즈니스 혁신을 위한 맞춤형 솔루션을 제공합니다.",
+  icons: "/favicon.ico",
+  openGraph: {
+    title: "인사이트빌드 | 비즈니스 모델 외주·컨설팅 전문 기업",
+    description:
+      "비즈니스 모델 설계, 시장 조사, 실행 전략 컨설팅 전문 기업. 기업의 성장과 혁신을 위한 맞춤형 컨설팅 서비스 제공.",
+    url: "https://insightbuild.kr",
+    siteName: "인사이트빌드 Insightbuild",
+    type: "website",
+    images: [
+      {
+        url: "https://insightbuild.kr/og-image.jpg", // 있으면 좋음
+        width: 1200,
+        height: 630,
+        alt: "인사이트빌드 컨설팅 이미지",
+      },
+    ],
+  },
 };
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="ko">
-      <head>
-        <meta
-          name="naver-site-verification"
-          content="a0dc99f11a7b3b00e5344c4e36f7e33d3c126a47"
-        />
-      </head>
-      <body className={`${outfit.variable} antialiased`}>{children}</body>
-    </html>
-  );
-}
