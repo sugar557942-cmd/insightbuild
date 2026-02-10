@@ -36,29 +36,51 @@ export async function GET() {
   try {
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(fileName);
-    let data = { date: '', todayCount: 0, totalCount: 0 };
+
+    // Default structure for new format
+    let data: {
+      totalCount: number;
+      history: Record<string, number>;
+      lastUpdated?: string;
+    } = {
+      totalCount: 0,
+      history: {},
+      lastUpdated: ''
+    };
 
     // 1. Try to read from GCS
     const [exists] = await file.exists();
     if (exists) {
       const [content] = await file.download();
       try {
-        data = JSON.parse(content.toString('utf8'));
+        const rawData = JSON.parse(content.toString('utf8'));
+
+        // Migration check: if old format { date, todayCount, totalCount } exists and no history
+        if (rawData.date && typeof rawData.todayCount === 'number' && !rawData.history) {
+          data.totalCount = rawData.totalCount || 0;
+          data.history = { [rawData.date]: rawData.todayCount };
+        } else {
+          // Assume it's new format or compatible
+          data.totalCount = rawData.totalCount || 0;
+          data.history = rawData.history || {};
+        }
       } catch (e) {
         console.error('Visitor Counter: Failed to parse GCS JSON', e);
-        // Data corrupted? Start fresh or try local
       }
     } else {
       // 2. Migration: If not in GCS, try to read from local file as seed
       if (fs.existsSync(localDataPath)) {
         try {
           const localContent = fs.readFileSync(localDataPath, 'utf8');
-          const parsed = JSON.parse(localContent);
-          data = {
-            date: parsed.date || '',
-            todayCount: parsed.todayCount || parsed.count || 0,
-            totalCount: parsed.totalCount || 0
-          };
+          const rawData = JSON.parse(localContent);
+
+          if (rawData.date && typeof rawData.todayCount === 'number' && !rawData.history) {
+            data.totalCount = rawData.totalCount || 0;
+            data.history = { [rawData.date]: rawData.todayCount };
+          } else {
+            data.totalCount = rawData.totalCount || 0;
+            data.history = rawData.history || {};
+          }
         } catch (e) {
           console.error('Visitor Counter: Failed to read local seed', e);
         }
@@ -67,13 +89,15 @@ export async function GET() {
 
     // 3. Logic: Increment
     const today = getTodayDateString();
-    if (data.date === today) {
-      data.todayCount += 1;
-    } else {
-      data.date = today;
-      data.todayCount = 1;
+
+    // Initialize today's count if not present
+    if (!data.history[today]) {
+      data.history[today] = 0;
     }
+
+    data.history[today] += 1;
     data.totalCount += 1;
+    data.lastUpdated = new Date().toISOString();
 
     // 4. Write back to GCS
     await file.save(JSON.stringify(data, null, 2), {
@@ -81,7 +105,8 @@ export async function GET() {
       resumable: false // suitable for small files
     });
 
-    return NextResponse.json({ todayCount: data.todayCount, totalCount: data.totalCount });
+    const todayCount = data.history[today];
+    return NextResponse.json({ todayCount, totalCount: data.totalCount });
 
   } catch (error) {
     console.error('Visitor Counter Error:', error);
@@ -98,16 +123,34 @@ function handleLocalFallback() {
       // We just return what we have without incrementing to avoid crashes if write fails?
       // Or we try to write and catch error.
       const fileContent = fs.readFileSync(localDataPath, 'utf8');
-      const data = JSON.parse(fileContent);
+      const rawData = JSON.parse(fileContent);
+
+      let data: {
+        totalCount: number;
+        history: Record<string, number>;
+        lastUpdated?: string;
+      } = {
+        totalCount: 0,
+        history: {},
+        lastUpdated: ''
+      };
+
+      if (rawData.date && typeof rawData.todayCount === 'number' && !rawData.history) {
+        data.totalCount = rawData.totalCount || 0;
+        data.history = { [rawData.date]: rawData.todayCount };
+      } else {
+        data.totalCount = rawData.totalCount || 0;
+        data.history = rawData.history || {};
+      }
+
       // Logic to increment (same as above)
       const today = getTodayDateString();
-      if (data.date === today) {
-        data.todayCount += 1;
-      } else {
-        data.date = today;
-        data.todayCount = 1;
+      if (!data.history[today]) {
+        data.history[today] = 0;
       }
+      data.history[today] += 1;
       data.totalCount += 1;
+      data.lastUpdated = new Date().toISOString();
 
       // Try write
       try {
@@ -115,7 +158,8 @@ function handleLocalFallback() {
       } catch (e) {
         console.warn('Visitor Counter: Local write failed (RO FS?)');
       }
-      return NextResponse.json({ todayCount: data.todayCount, totalCount: data.totalCount });
+      const todayCount = data.history[today];
+      return NextResponse.json({ todayCount, totalCount: data.totalCount });
     }
     return NextResponse.json({ todayCount: 0, totalCount: 0 });
   } catch (e) {

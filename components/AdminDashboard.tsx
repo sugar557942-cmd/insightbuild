@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Save, X, RefreshCw, Plus, Trash2, Image as ImageIcon, Upload, Loader } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, X, RefreshCw, Plus, Trash2, Image as ImageIcon, Upload, Loader, BarChart as BarChartIcon } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminDashboardProps {
     content: any;
@@ -14,6 +15,26 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [activeTab, setActiveTab] = useState('hero');
     const [isSaving, setIsSaving] = useState(false);
     const [uploadingId, setUploadingId] = useState<number | null>(null);
+    const [visitorStats, setVisitorStats] = useState<{ date: string, count: number }[]>([]);
+    const [totalVisitors, setTotalVisitors] = useState(0);
+
+    useEffect(() => {
+        if (activeTab === 'stats') {
+            fetch('/api/visitors/stats')
+                .then(res => res.json())
+                .then(data => {
+                    setTotalVisitors(data.totalCount);
+                    if (data.history) {
+                        const chartData = Object.entries(data.history).map(([date, count]) => ({
+                            date,
+                            count: count as number
+                        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                        setVisitorStats(chartData);
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+    }, [activeTab]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -135,6 +156,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         { id: 'about', label: 'About' },
         { id: 'portfolio', label: 'Portfolio' },
         { id: 'contact', label: 'Contact' },
+        { id: 'stats', label: '방문자 통계' },
     ];
 
     return (
@@ -370,6 +392,40 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                     />
                                 </div>
                             </>
+                        )}
+
+                        {activeTab === 'stats' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-[#111] p-6 rounded-lg border border-[#333]">
+                                        <h3 className="text-gray-400 text-sm mb-2">총 방문자 수</h3>
+                                        <div className="text-3xl font-bold text-white">{totalVisitors.toLocaleString()}명</div>
+                                    </div>
+
+                                    <div className="col-span-2 bg-[#111] p-6 rounded-lg border border-[#333]">
+                                        <h3 className="text-gray-400 text-sm mb-4">일별 방문자 추이</h3>
+                                        <div className="h-[300px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={visitorStats}>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        stroke="#888"
+                                                        tickFormatter={(value: string) => value.slice(5)} // Show MM-DD only
+                                                        tick={{ fontSize: 12 }}
+                                                    />
+                                                    <YAxis stroke="#888" tick={{ fontSize: 12 }} />
+                                                    <Tooltip
+                                                        contentStyle={{ backgroundColor: '#222', borderColor: '#444', color: '#fff' }}
+                                                        itemStyle={{ color: '#fff' }}
+                                                    />
+                                                    <Bar dataKey="count" fill="var(--primary-yellow)" radius={[4, 4, 0, 0]} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
