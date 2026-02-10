@@ -16,7 +16,9 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [isSaving, setIsSaving] = useState(false);
     const [uploadingId, setUploadingId] = useState<number | null>(null);
     const [visitorStats, setVisitorStats] = useState<{ date: string, count: number }[]>([]);
+    const [originalStats, setOriginalStats] = useState<{ date: string, count: number }[]>([]); // Store raw daily data
     const [totalVisitors, setTotalVisitors] = useState(0);
+    const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
 
     useEffect(() => {
         if (activeTab === 'stats') {
@@ -29,12 +31,49 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                             date,
                             count: count as number
                         })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-                        setVisitorStats(chartData);
+                        setOriginalStats(chartData); // Save raw data
+                        setVisitorStats(chartData); // Initialize with daily data
                     }
                 })
                 .catch(err => console.error(err));
         }
     }, [activeTab]);
+
+    // Data Aggregation Logic
+    useEffect(() => {
+        if (originalStats.length === 0) return;
+
+        let aggregatedData: { date: string, count: number }[] = [];
+
+        if (timeRange === 'daily') {
+            aggregatedData = [...originalStats];
+        } else if (timeRange === 'weekly') {
+            const weeks: Record<string, number> = {};
+            originalStats.forEach(item => {
+                const date = new Date(item.date);
+                const firstDay = new Date(date.setDate(date.getDate() - date.getDay())); // Sunday
+                const weekLabel = `${firstDay.getMonth() + 1}/${firstDay.getDate()} 주`;
+                weeks[weekLabel] = (weeks[weekLabel] || 0) + item.count;
+            });
+            aggregatedData = Object.entries(weeks).map(([date, count]) => ({ date, count }));
+        } else if (timeRange === 'monthly') {
+            const months: Record<string, number> = {};
+            originalStats.forEach(item => {
+                const monthLabel = item.date.substring(0, 7); // YYYY-MM
+                months[monthLabel] = (months[monthLabel] || 0) + item.count;
+            });
+            aggregatedData = Object.entries(months).map(([date, count]) => ({ date, count }));
+        } else if (timeRange === 'yearly') {
+            const years: Record<string, number> = {};
+            originalStats.forEach(item => {
+                const yearLabel = item.date.substring(0, 4); // YYYY
+                years[yearLabel] = (years[yearLabel] || 0) + item.count;
+            });
+            aggregatedData = Object.entries(years).map(([date, count]) => ({ date, count }));
+        }
+
+        setVisitorStats(aggregatedData);
+    }, [timeRange, originalStats]);
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -156,7 +195,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         { id: 'about', label: 'About' },
         { id: 'portfolio', label: 'Portfolio' },
         { id: 'contact', label: 'Contact' },
-        { id: 'stats', label: '방문자 통계' },
+        { id: 'stats', label: 'VISITOR' },
     ];
 
     return (
@@ -403,7 +442,27 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                     </div>
 
                                     <div className="col-span-2 bg-[#111] p-6 rounded-lg border border-[#333]">
-                                        <h3 className="text-gray-400 text-sm mb-4">일별 방문자 추이</h3>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-gray-400 text-sm">방문자 추이</h3>
+                                            <div className="flex bg-[#222] rounded p-1 gap-1">
+                                                {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((range) => (
+                                                    <button
+                                                        key={range}
+                                                        onClick={() => setTimeRange(range)}
+                                                        className={`px-3 py-1 text-xs rounded transition-colors ${timeRange === range
+                                                                ? 'bg-[var(--primary-yellow)] text-black font-bold'
+                                                                : 'text-gray-400 hover:text-white'
+                                                            }`}
+                                                    >
+                                                        {range === 'daily' && '일별'}
+                                                        {range === 'weekly' && '주별'}
+                                                        {range === 'monthly' && '월별'}
+                                                        {range === 'yearly' && '연별'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
                                         <div className="h-[300px] w-full">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <BarChart data={visitorStats}>
@@ -411,13 +470,18 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                     <XAxis
                                                         dataKey="date"
                                                         stroke="#888"
-                                                        tickFormatter={(value: string) => value.slice(5)} // Show MM-DD only
+                                                        tickFormatter={(value: string) => {
+                                                            if (timeRange === 'daily') return value.slice(5);
+                                                            return value;
+                                                        }}
                                                         tick={{ fontSize: 12 }}
                                                     />
                                                     <YAxis stroke="#888" tick={{ fontSize: 12 }} />
                                                     <Tooltip
                                                         contentStyle={{ backgroundColor: '#222', borderColor: '#444', color: '#fff' }}
                                                         itemStyle={{ color: '#fff' }}
+                                                        formatter={(value: number) => [`${value}명`, '방문자']}
+                                                        labelFormatter={(label) => `${label}`}
                                                     />
                                                     <Bar dataKey="count" fill="var(--primary-yellow)" radius={[4, 4, 0, 0]} />
                                                 </BarChart>
