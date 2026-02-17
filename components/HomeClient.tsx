@@ -12,6 +12,7 @@ import Contact from './Contact';
 import CustomCursor from './CustomCursor';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
+import OpenAlexTrendsSection from './OpenAlexTrendsSection';
 
 interface HomeClientProps {
     initialContent: any;
@@ -46,6 +47,7 @@ export default function HomeClient({ initialContent }: HomeClientProps) {
             <Process content={content.process} />
             <Portfolio content={content.portfolio} />
             <Stats content={content.stats} />
+            <OpenAlexTrendsSection />
             <Contact content={content.contact} />
 
             {/* Footer */}

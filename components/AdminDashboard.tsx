@@ -195,7 +195,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         { id: 'about', label: 'About' },
         { id: 'portfolio', label: 'Portfolio' },
         { id: 'contact', label: 'Contact' },
-        { id: 'stats', label: 'VISITOR' },
+        { id: 'stats', label: 'Visitor' },
     ];
 
     return (
@@ -450,8 +450,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                         key={range}
                                                         onClick={() => setTimeRange(range)}
                                                         className={`px-3 py-1 text-xs rounded transition-colors ${timeRange === range
-                                                                ? 'bg-[var(--primary-yellow)] text-black font-bold'
-                                                                : 'text-gray-400 hover:text-white'
+                                                            ? 'bg-[var(--primary-yellow)] text-black font-bold'
+                                                            : 'text-gray-400 hover:text-white'
                                                             }`}
                                                     >
                                                         {range === 'daily' && '일별'}
