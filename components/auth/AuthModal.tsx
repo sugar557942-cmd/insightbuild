@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, Building, MapPin, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 
 type AuthView = 'login' | 'signup' | 'reset-password' | 'success';
@@ -13,6 +14,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, initialView = 'login' }: AuthModalProps) {
+  const router = useRouter();
   const [view, setView] = useState<AuthView>(initialView);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,6 +48,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
     if (error) {
       setError(error.message === 'Invalid login credentials' ? '이메일 또는 비밀번호가 일치하지 않습니다.' : error.message);
     } else {
+      router.refresh();
       onClose();
     }
     setIsLoading(false);
@@ -114,10 +117,10 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
       <div className="bg-[#111111] border border-gray-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
         <div className="flex justify-between items-center p-6 border-b border-gray-800">
           <h2 className="text-xl font-bold text-white tracking-tight">
-            {view === 'login' && '로그인'}
-            {view === 'signup' && '회원가입'}
-            {view === 'reset-password' && '비밀번호 찾기'}
-            {view === 'success' && '완료'}
+            {view === 'login' && 'Log In'}
+            {view === 'signup' && 'Sign Up'}
+            {view === 'reset-password' && 'Reset Password'}
+            {view === 'success' && 'Success'}
           </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
             <X size={20} />
@@ -176,11 +179,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 disabled={isLoading}
                 className="w-full bg-[var(--primary-yellow)] text-black font-bold py-3 rounded-xl hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : '로그인'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Log In'}
               </button>
               <div className="text-center text-sm text-gray-500 mt-6">
-                계정이 없으신가요? 
-                <button type="button" onClick={() => setView('signup')} className="text-[var(--primary-yellow)] ml-2 font-bold hover:underline">회원가입</button>
+                Don't have an account? 
+                <button type="button" onClick={() => setView('signup')} className="text-[var(--primary-yellow)] ml-2 font-bold hover:underline">Sign Up</button>
               </div>
             </form>
           )}
@@ -273,11 +276,11 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 disabled={isLoading}
                 className="w-full bg-[var(--primary-yellow)] text-black font-bold py-3 mt-4 rounded-xl hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2"
               >
-                {isLoading ? <Loader2 className="animate-spin" size={20} /> : '회원가입'}
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : 'Sign Up'}
               </button>
               <div className="text-center text-sm text-gray-500 mt-6">
-                이미 계정이 있으신가요? 
-                <button type="button" onClick={() => setView('login')} className="text-[var(--primary-yellow)] ml-2 font-bold hover:underline">로그인</button>
+                Already have an account? 
+                <button type="button" onClick={() => setView('login')} className="text-[var(--primary-yellow)] ml-2 font-bold hover:underline">Log In</button>
               </div>
             </form>
           )}
@@ -313,7 +316,7 @@ export default function AuthModal({ isOpen, onClose, initialView = 'login' }: Au
                 onClick={() => setView('login')}
                 className="w-full text-gray-500 text-sm font-medium mt-4 hover:text-white transition-colors"
               >
-                로그인으로 돌아가기
+                Back to Log In
               </button>
             </form>
           )}

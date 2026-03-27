@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Header from '@/components/Header';
+import { useAuth } from '../auth/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import RestrictedAccess from '../auth/RestrictedAccess';
 import Link from 'next/link';
@@ -13,6 +14,7 @@ interface RestrictedDetailViewProps {
 }
 
 export default function RestrictedDetailView({ category, weekLabel }: RestrictedDetailViewProps) {
+  const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialView, setAuthInitialView] = useState<'login' | 'signup'>('login');
 
@@ -61,12 +63,19 @@ export default function RestrictedDetailView({ category, weekLabel }: Restricted
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-blue-500/5 rounded-full blur-[100px]"></div>
           
           <div className="relative z-10 max-w-2xl mx-auto text-center">
-            <RestrictedAccess 
-              onLogin={openLogin}
-              onSignup={openSignup}
-              title="심층 분석 보고서는 회원에게만 공개됩니다"
-              description="해당 산업의 STEEP 분석, 위클리 트렌드 차트, 핵심 비즈니스 인사이트 등 모든 유료급 정보를 확인하시려면 로그인해 주세요."
-            />
+            {user ? (
+              <div className="py-12 flex flex-col items-center gap-6">
+                <div className="w-16 h-16 border-4 border-[var(--primary-yellow)] border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-400 font-medium animate-pulse">Checking authentication...</p>
+              </div>
+            ) : (
+              <RestrictedAccess 
+                onLogin={openLogin}
+                onSignup={openSignup}
+                title="Deep analysis reports are for members only"
+                description="Please log in to access STEEP analysis, weekly trend charts, and core business insights for this industry."
+              />
+            )}
           </div>
         </div>
       </div>

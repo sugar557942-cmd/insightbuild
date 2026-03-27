@@ -66,7 +66,7 @@ export default function AdminLogin({ isOpen, onClose, onLogin }: AdminLoginProps
                         type="submit"
                         className="w-full py-3 rounded-lg font-bold bg-[var(--primary-yellow)] text-black hover:bg-[#e6c200] transition-colors"
                     >
-                        로그인
+                        Log In
                     </button>
                 </form>
             </div>

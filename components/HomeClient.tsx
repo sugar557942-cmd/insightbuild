@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Header from './Header';
 import Hero from './Hero';
-import OpenAlexTrendsSection from './OpenAlexTrendsSection';
 import About from './About';
 import Services from './Services';
 import Process from './Process';
@@ -47,7 +46,6 @@ export default function HomeClient({ initialContent }: HomeClientProps) {
             <Process content={content.process} />
             <Portfolio content={content.portfolio} />
             <Stats content={content.stats} />
-            <OpenAlexTrendsSection />
             <Contact content={content.contact} />
 
             {/* Footer */}

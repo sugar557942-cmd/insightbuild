@@ -19,6 +19,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [originalStats, setOriginalStats] = useState<{ date: string, count: number }[]>([]); // Store raw daily data
     const [totalVisitors, setTotalVisitors] = useState(0);
     const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+    const [reports, setReports] = useState<any[]>([]);
+    const [isFetchingReports, setIsFetchingReports] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'stats') {
@@ -36,8 +38,53 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                     }
                 })
                 .catch(err => console.error(err));
+        } else if (activeTab === 'trends') {
+            fetchReports();
         }
     }, [activeTab]);
+
+    const fetchReports = async () => {
+        setIsFetchingReports(true);
+        try {
+            // Using a simple bearer token for now as per current structure
+            // In a real app, this should be a proper session or a more secure method
+            const res = await fetch('/api/reports', {
+                headers: {
+                    'Authorization': 'Bearer 58a370b5e0c06be8b7a80d9b504f532bf00a46287feecc23c909b98217ebfdc8' // Correct full secret
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                setReports(result.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch reports:', error);
+        } finally {
+            setIsFetchingReports(false);
+        }
+    };
+
+    const handleDeleteReport = async (id: string, title: string) => {
+        if (!confirm(`'${title}' 보고서를 정말 삭제하시겠습니까?`)) return;
+
+        try {
+            const res = await fetch(`/api/reports?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer 58a370b5e0c06be8b7a80d9b504f532bf00a46287feecc23c909b98217ebfdc8'
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('삭제되었습니다.');
+                fetchReports();
+            } else {
+                alert(`삭제 실패: ${result.error}`);
+            }
+        } catch (error) {
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
 
     // Data Aggregation Logic
     useEffect(() => {
@@ -194,6 +241,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         { id: 'hero', label: 'Hero' },
         { id: 'about', label: 'About' },
         { id: 'portfolio', label: 'Portfolio' },
+        { id: 'trends', label: 'Trends' },
         { id: 'contact', label: 'Contact' },
         { id: 'stats', label: 'Visitor' },
     ];
@@ -489,6 +537,62 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'trends' && (
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-gray-400 text-sm">보고서 관리</h3>
+                                    <button 
+                                        onClick={fetchReports}
+                                        className="text-[var(--primary-yellow)] text-xs font-bold hover:underline flex items-center gap-1"
+                                    >
+                                        <RefreshCw size={12} className={isFetchingReports ? 'animate-spin' : ''} />
+                                        새로고침
+                                    </button>
+                                </div>
+
+                                {isFetchingReports && reports.length === 0 ? (
+                                    <div className="py-20 flex flex-col items-center justify-center gap-4 text-gray-500">
+                                        <RefreshCw className="animate-spin" size={32} />
+                                        <p>보고서 목록을 불러오는 중...</p>
+                                    </div>
+                                ) : reports.length === 0 ? (
+                                    <div className="py-20 text-center border-2 border-dashed border-gray-800 rounded-xl text-gray-500">
+                                        등록된 보고서가 없습니다.
+                                    </div>
+                                ) : (
+                                    <div className="bg-[#111] border border-gray-800 rounded-xl overflow-hidden">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="bg-gray-900/50 border-b border-gray-800">
+                                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">주차 / 제목</th>
+                                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">작업</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-800/50">
+                                                {reports.map((report) => (
+                                                    <tr key={report.id} className="hover:bg-white/5 transition-colors group">
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-xs text-[var(--primary-yellow)] font-bold mb-1">{report.week}</div>
+                                                            <div className="text-sm font-medium text-white line-clamp-1">{report.title}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <button
+                                                                onClick={() => handleDeleteReport(report.id, report.title)}
+                                                                className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                                                                title="삭제"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

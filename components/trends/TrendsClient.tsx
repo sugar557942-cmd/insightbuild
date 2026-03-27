@@ -21,10 +21,13 @@ interface NewsItem {
 }
 
 export default function TrendsClient({ initialIndustries, initialReports, isLoggedIn }: TrendsClientProps) {
+    const { user } = useAuth();
     const [selectedCategory, setSelectedCategory] = useState(initialIndustries[0]?.name_ko || '');
     const [searchTerm, setSearchTerm] = useState('');
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authInitialView, setAuthInitialView] = useState<'login' | 'signup'>('login');
+
+    const isUserLoggedIn = isLoggedIn || !!user;
 
     const openLogin = () => {
         setAuthInitialView('login');
@@ -123,9 +126,9 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                             </div>
                         </div>
 
-                        <div className={`relative ${!isLoggedIn ? 'min-h-[600px]' : ''}`}>
+                        <div className={`relative ${!isUserLoggedIn ? 'min-h-[600px]' : ''}`}>
                             {/* Blurrable Content */}
-                            <div className={!isLoggedIn ? 'blur-md pointer-events-none select-none grayscale' : ''}>
+                            <div className={!isUserLoggedIn ? 'blur-md pointer-events-none select-none grayscale' : ''}>
                                 {/* Featured Report Card */}
                                 {featuredReports.map(featured => (
                                     <div key={`featured-${featured.id}`} className="mb-8 bg-[#111111] border-l-4 border-[#FFD700] border-y border-r border-[#222222] rounded-lg p-6 shadow-xl">
@@ -232,7 +235,7 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                             </div>
 
                             {/* Restricted Access Overlay */}
-                            {!isLoggedIn && (
+                            {!isUserLoggedIn && (
                                 <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
                                     <RestrictedAccess 
                                         onLogin={openLogin}

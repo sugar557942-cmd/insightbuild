@@ -92,13 +92,20 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                                 onClick={openLogin}
                                 className="text-sm font-bold text-gray-300 hover:text-white transition-colors"
                             >
-                                로그인
+                                Log In
                             </button>
                             <button
                                 onClick={openSignup}
                                 className="bg-[var(--primary-yellow)] text-black text-xs font-bold px-4 py-2 rounded-full hover:bg-yellow-400 transition-all"
                             >
-                                회원가입
+                                Sign Up
+                            </button>
+                            <button
+                                onClick={onAdminClick}
+                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 border border-gray-700 rounded-full hover:border-[var(--primary-yellow)] hover:text-[var(--primary-yellow)] transition-all ml-1"
+                            >
+                                <Lock size={12} />
+                                ADMIN
                             </button>
                         </div>
                     )}
@@ -167,7 +174,7 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                             }}
                             className="w-full py-4 text-xl font-bold text-white border border-gray-800 rounded-2xl"
                         >
-                            로그인
+                            Log In
                         </button>
                         <button
                             onClick={() => {
@@ -176,7 +183,17 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                             }}
                             className="w-full py-4 text-xl font-bold bg-[var(--primary-yellow)] text-black rounded-2xl"
                         >
-                            회원가입
+                            Sign Up
+                        </button>
+                        <button
+                            onClick={() => {
+                                setIsMobileMenuOpen(false);
+                                onAdminClick();
+                            }}
+                            className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-gray-500 border border-gray-900 rounded-xl"
+                        >
+                            <Lock size={14} />
+                            ADMIN
                         </button>
                     </div>
                 )}
