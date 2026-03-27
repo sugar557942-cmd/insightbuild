@@ -23,6 +23,7 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
         { name: 'About', href: '#about' },
         { name: 'Services', href: '#services' },
         { name: 'Portfolio', href: '#portfolio' },
+        { name: 'Industry Trends Report', href: '/trends' },
         { name: 'Contact', href: '#contact' },
     ];
 

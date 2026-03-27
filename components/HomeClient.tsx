@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Header from './Header';
 import Hero from './Hero';
+import OpenAlexTrendsSection from './OpenAlexTrendsSection';
 import About from './About';
 import Services from './Services';
 import Process from './Process';
@@ -12,7 +13,6 @@ import Contact from './Contact';
 import CustomCursor from './CustomCursor';
 import AdminLogin from './AdminLogin';
 import AdminDashboard from './AdminDashboard';
-import OpenAlexTrendsSection from './OpenAlexTrendsSection';
 
 interface HomeClientProps {
     initialContent: any;
