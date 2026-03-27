@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Info } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server-client';
 import TrendBarChart from '@/components/trends/TrendBarChart';
+import RestrictedDetailView from '@/components/trends/RestrictedDetailView';
 
 export const revalidate = 3600;
 
@@ -52,6 +54,10 @@ interface FormattedReport {
 export default async function ReportDetailPage({ params }: { params: Promise<{ reportId: string }> }) {
   const { reportId } = await params;
   
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const isLoggedIn = !!session;
+
   const { data: report } = await supabaseAdmin
     .from('reports')
     .select('*')
@@ -60,6 +66,15 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
 
   if (!report) {
     notFound();
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <RestrictedDetailView 
+        category={report.category} 
+        weekLabel={report.week_label} 
+      />
+    );
   }
 
   // Map DB fields to UI-friendly structure

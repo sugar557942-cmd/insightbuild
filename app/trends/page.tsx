@@ -1,9 +1,14 @@
 import { supabaseAdmin } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server-client';
 import TrendsClient from '@/components/trends/TrendsClient';
 
 export const revalidate = 3600;
 
 export default async function TrendsPage() {
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const isLoggedIn = !!session;
+
     // Fetch all industries (categories)
     const { data: industries } = await supabaseAdmin
         .from('industries')
@@ -20,6 +25,7 @@ export default async function TrendsPage() {
         <TrendsClient 
             initialIndustries={industries || []} 
             initialReports={reports || []} 
+            isLoggedIn={isLoggedIn}
         />
     );
 }

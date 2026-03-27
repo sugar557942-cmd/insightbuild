@@ -3,19 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import OpenAlexTrendsSection from '@/components/OpenAlexTrendsSection';
 import { ChevronRight, FileText, Search } from 'lucide-react';
+import { useAuth } from '../auth/AuthProvider';
+import AuthModal from '../auth/AuthModal';
+import RestrictedAccess from '../auth/RestrictedAccess';
 
 interface TrendsClientProps {
     initialIndustries: any[];
     initialReports: any[];
-}
-
-interface ReportStat {
-  value: string;
-  label: string;
-  delta: string;
-  trend: string;
+    isLoggedIn: boolean;
 }
 
 interface NewsItem {
@@ -24,13 +20,24 @@ interface NewsItem {
     url: string;
 }
 
-export default function TrendsClient({ initialIndustries, initialReports }: TrendsClientProps) {
+export default function TrendsClient({ initialIndustries, initialReports, isLoggedIn }: TrendsClientProps) {
     const [selectedCategory, setSelectedCategory] = useState(initialIndustries[0]?.name_ko || '');
     const [searchTerm, setSearchTerm] = useState('');
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authInitialView, setAuthInitialView] = useState<'login' | 'signup'>('login');
+
+    const openLogin = () => {
+        setAuthInitialView('login');
+        setIsAuthModalOpen(true);
+    };
+
+    const openSignup = () => {
+        setAuthInitialView('signup');
+        setIsAuthModalOpen(true);
+    };
 
     const categories = initialIndustries.map((i: any) => i.name_ko);
     
-    // Map DB reports to UI-friendly structure
     const formattedReports = initialReports.map((report: any) => ({
         ...report,
         weekLabel: report.week_label,
@@ -99,7 +106,7 @@ export default function TrendsClient({ initialIndustries, initialReports }: Tren
                     </aside>
 
                     {/* Main Content: Reports */}
-                    <section className="lg:w-3/4">
+                    <section className="lg:w-3/4 overflow-hidden relative">
                         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <h2 className="text-2xl font-bold border-l-4 border-[var(--primary-yellow)] pl-4">
                                 {selectedCategory} <span className="text-gray-500 text-lg font-normal ml-2">({filteredReports.filter(r => !r.isFeatured).length})</span>
@@ -116,117 +123,133 @@ export default function TrendsClient({ initialIndustries, initialReports }: Tren
                             </div>
                         </div>
 
-                        {/* Featured Report Card */}
-                        {featuredReports.map(featured => (
-                            <div key={`featured-${featured.id}`} className="mb-8 bg-[#111111] border-l-4 border-[#FFD700] border-y border-r border-[#222222] rounded-lg p-6 shadow-xl">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Left: Info & STEEP */}
-                                    <div>
-                                        <span className="bg-[#FFD700] text-black text-xs font-bold px-3 py-1 rounded">
-                                            이주의 주목 산업
-                                        </span>
-                                        <h3 className="text-white text-xl font-bold mt-3">
-                                            {featured.title}
-                                        </h3>
-                                        <p className="text-[#999999] text-sm mt-2 line-clamp-3 leading-relaxed">
-                                            {featured.summary}
-                                        </p>
-                                        
-                                        <div className="grid grid-cols-2 gap-3 mt-6">
-                                            <div className="bg-[#1a1a1a] rounded p-3">
-                                                <div className="text-[#60a5fa] text-[10px] font-bold mb-1">S · 사회</div>
-                                                <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.s}</div>
-                                            </div>
-                                            <div className="bg-[#1a1a1a] rounded p-3">
-                                                <div className="text-[#a78bfa] text-[10px] font-bold mb-1">T · 기술</div>
-                                                <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.t}</div>
-                                            </div>
-                                            <div className="bg-[#1a1a1a] rounded p-3">
-                                                <div className="text-[#FFD700] text-[10px] font-bold mb-1">E · 경제</div>
-                                                <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.e}</div>
-                                            </div>
-                                            <div className="bg-[#1a1a1a] rounded p-3">
-                                                <div className="text-[#f87171] text-[10px] font-bold mb-1">P · 정책</div>
-                                                <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.p}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Right: Key News */}
-                                    <div className="flex flex-col h-full">
-                                        <div className="text-[#FFD700] text-xs font-bold tracking-widest mb-4 uppercase">
-                                            핵심 뉴스
-                                        </div>
-                                        <div className="space-y-0 flex-grow">
-                                            {featured.news.slice(0, 4).map((item: any, nidx: number) => (
-                                                <div key={nidx} className="border-b border-[#1a1a1a] py-3 flex items-start gap-3 last:border-0 hover:bg-white/5 transition-colors px-2 -mx-2 rounded">
-                                                    <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">
-                                                        {item.source}
-                                                    </span>
-                                                    <span className="text-white text-xs line-clamp-1">
-                                                        {item.title}
-                                                    </span>
+                        <div className={`relative ${!isLoggedIn ? 'min-h-[600px]' : ''}`}>
+                            {/* Blurrable Content */}
+                            <div className={!isLoggedIn ? 'blur-md pointer-events-none select-none grayscale' : ''}>
+                                {/* Featured Report Card */}
+                                {featuredReports.map(featured => (
+                                    <div key={`featured-${featured.id}`} className="mb-8 bg-[#111111] border-l-4 border-[#FFD700] border-y border-r border-[#222222] rounded-lg p-6 shadow-xl">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* Left: Info & STEEP */}
+                                            <div>
+                                                <span className="bg-[#FFD700] text-black text-xs font-bold px-3 py-1 rounded">
+                                                    이주의 주목 산업
+                                                </span>
+                                                <h3 className="text-white text-xl font-bold mt-3">
+                                                    {featured.title}
+                                                </h3>
+                                                <p className="text-[#999999] text-sm mt-2 line-clamp-3 leading-relaxed">
+                                                    {featured.summary}
+                                                </p>
+                                                
+                                                <div className="grid grid-cols-2 gap-3 mt-6">
+                                                    <div className="bg-[#1a1a1a] rounded p-3">
+                                                        <div className="text-[#60a5fa] text-[10px] font-bold mb-1">S · 사회</div>
+                                                        <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.s}</div>
+                                                    </div>
+                                                    <div className="bg-[#1a1a1a] rounded p-3">
+                                                        <div className="text-[#a78bfa] text-[10px] font-bold mb-1">T · 기술</div>
+                                                        <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.t}</div>
+                                                    </div>
+                                                    <div className="bg-[#1a1a1a] rounded p-3">
+                                                        <div className="text-[#FFD700] text-[10px] font-bold mb-1">E · 경제</div>
+                                                        <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.e}</div>
+                                                    </div>
+                                                    <div className="bg-[#1a1a1a] rounded p-3">
+                                                        <div className="text-[#f87171] text-[10px] font-bold mb-1">P · 정책</div>
+                                                        <div className="text-white/80 text-[11px] line-clamp-1">{featured.steep.p}</div>
+                                                    </div>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-auto pt-6 flex justify-end">
-                                            <Link 
-                                                href={`/trends/${featured.id}`} 
-                                                className="text-[#FFD700] text-sm font-medium hover:underline flex items-center gap-1 group"
-                                            >
-                                                전체 보고서 보기 
-                                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                                            </Link>
+                                            </div>
+
+                                            {/* Right: Key News */}
+                                            <div className="flex flex-col h-full">
+                                                <div className="text-[#FFD700] text-xs font-bold tracking-widest mb-4 uppercase">
+                                                    핵심 뉴스
+                                                </div>
+                                                <div className="space-y-0 flex-grow">
+                                                    {featured.news.slice(0, 4).map((item: any, nidx: number) => (
+                                                        <div key={nidx} className="border-b border-[#1a1a1a] py-3 flex items-start gap-3 last:border-0 hover:bg-white/5 transition-colors px-2 -mx-2 rounded">
+                                                            <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">
+                                                                {item.source}
+                                                            </span>
+                                                            <span className="text-white text-xs line-clamp-1">
+                                                                {item.title}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="mt-auto pt-6 flex justify-end">
+                                                    <Link 
+                                                        href={`/trends/${featured.id}`} 
+                                                        className="text-[#FFD700] text-sm font-medium hover:underline flex items-center gap-1 group"
+                                                    >
+                                                        전체 보고서 보기 
+                                                        <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                                                    </Link>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
+                                ))}
+
+                                <div className="grid gap-4">
+                                    {filteredReports.filter(r => !r.isFeatured).length > 0 ? (
+                                        filteredReports.filter(r => !r.isFeatured).map((report) => (
+                                            <Link 
+                                                key={report.id}
+                                                href={`/trends/${report.id}`}
+                                                className="bg-[#111] border border-gray-800 rounded-2xl p-6 hover:border-[#FFD700] transition-all group block shadow-md"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex items-center gap-3 text-[var(--primary-yellow)] text-xs font-bold uppercase tracking-wider">
+                                                        <FileText size={14} />
+                                                        INDUSTRY REPORT
+                                                    </div>
+                                                    <span className="text-gray-500 text-xs">{report.weekLabel}</span>
+                                                </div>
+                                                <h3 className="text-xl font-bold mb-3 group-hover:text-[var(--primary-yellow)] transition-colors">
+                                                    {report.title}
+                                                </h3>
+                                                <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                                                    {report.summary}
+                                                </p>
+                                                <div className="text-sm font-bold flex items-center gap-2 group/btn text-[#FFD700]">
+                                                    상세 보기 
+                                                    <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                </div>
+                                            </Link>
+                                        ))
+                                    ) : (
+                                        <div className="bg-[#111] border border-dashed border-gray-800 rounded-2xl p-20 text-center">
+                                            <FileText size={48} className="mx-auto text-gray-700 mb-4" />
+                                            <p className="text-gray-500">
+                                                {searchTerm ? '검색 결과가 없습니다.' : '해당 카테고리에 등록된 보고서가 없습니다.'}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-                        ))}
 
-                        <div className="grid gap-4">
-                            {filteredReports.filter(r => !r.isFeatured).length > 0 ? (
-                                filteredReports.filter(r => !r.isFeatured).map((report) => (
-                                    <Link 
-                                        key={report.id}
-                                        href={`/trends/${report.id}`}
-                                        className="bg-[#111] border border-gray-800 rounded-2xl p-6 hover:border-[#FFD700] transition-all group block shadow-md"
-                                    >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-3 text-[var(--primary-yellow)] text-xs font-bold uppercase tracking-wider">
-                                                <FileText size={14} />
-                                                INDUSTRY REPORT
-                                            </div>
-                                            <span className="text-gray-500 text-xs">{report.weekLabel}</span>
-                                        </div>
-                                        <h3 className="text-xl font-bold mb-3 group-hover:text-[var(--primary-yellow)] transition-colors">
-                                            {report.title}
-                                        </h3>
-                                        <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                                            {report.summary}
-                                        </p>
-                                        <div className="text-sm font-bold flex items-center gap-2 group/btn text-[#FFD700]">
-                                            상세 보기 
-                                            <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                                        </div>
-                                    </Link>
-                                ))
-                            ) : (
-                                <div className="bg-[#111] border border-dashed border-gray-800 rounded-2xl p-20 text-center">
-                                    <FileText size={48} className="mx-auto text-gray-700 mb-4" />
-                                    <p className="text-gray-500">
-                                        {searchTerm ? '검색 결과가 없습니다.' : '해당 카테고리에 등록된 보고서가 없습니다.'}
-                                    </p>
+                            {/* Restricted Access Overlay */}
+                            {!isLoggedIn && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
+                                    <RestrictedAccess 
+                                        onLogin={openLogin}
+                                        onSignup={openSignup}
+                                    />
                                 </div>
                             )}
                         </div>
                     </section>
                 </div>
-
-                {/* Global Trends Section */}
-                <div className="mt-20 border-t border-gray-800 pt-20">
-                    <OpenAlexTrendsSection />
-                </div>
             </div>
+
+            <AuthModal 
+                isOpen={isAuthModalOpen} 
+                onClose={() => setIsAuthModalOpen(false)} 
+                initialView={authInitialView}
+            />
 
             <style jsx>{`
                 .custom-scrollbar::-webkit-scrollbar {
