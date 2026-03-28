@@ -21,6 +21,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
     const [reports, setReports] = useState<any[]>([]);
     const [isFetchingReports, setIsFetchingReports] = useState(false);
+    const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (activeTab === 'stats') {
@@ -77,6 +78,57 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             const result = await res.json();
             if (result.success) {
                 alert('삭제되었습니다.');
+                setSelectedReportIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                });
+                fetchReports();
+            } else {
+                alert(`삭제 실패: ${result.error}`);
+            }
+        } catch (error) {
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleToggleSelectAll = () => {
+        if (selectedReportIds.size === reports.length) {
+            setSelectedReportIds(new Set());
+        } else {
+            setSelectedReportIds(new Set(reports.map(r => r.id)));
+        }
+    };
+
+    const handleToggleSelect = (id: string) => {
+        setSelectedReportIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
+    const handleDeleteSelected = async () => {
+        const count = selectedReportIds.size;
+        if (count === 0) return;
+        if (!confirm(`선택한 ${count}개의 보고서를 정말 삭제하시겠습니까?`)) return;
+
+        const ids = Array.from(selectedReportIds).join(',');
+        try {
+            const res = await fetch(`/api/reports?id=${ids}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': 'Bearer 58a370b5e0c06be8b7a80d9b504f532bf00a46287feecc23c909b98217ebfdc8'
+                }
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('삭제되었습니다.');
+                setSelectedReportIds(new Set());
                 fetchReports();
             } else {
                 alert(`삭제 실패: ${result.error}`);
@@ -543,7 +595,18 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                         {activeTab === 'trends' && (
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-gray-400 text-sm">보고서 관리</h3>
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="text-gray-400 text-sm">보고서 관리</h3>
+                                        {selectedReportIds.size > 0 && (
+                                            <button
+                                                onClick={handleDeleteSelected}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-md text-xs font-bold hover:bg-red-500/20 transition-colors"
+                                            >
+                                                <Trash2 size={14} />
+                                                {selectedReportIds.size}개 삭제
+                                            </button>
+                                        )}
+                                    </div>
                                     <button 
                                         onClick={fetchReports}
                                         className="text-[var(--primary-yellow)] text-xs font-bold hover:underline flex items-center gap-1"
@@ -567,13 +630,29 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                         <table className="w-full text-left">
                                             <thead>
                                                 <tr className="bg-gray-900/50 border-b border-gray-800">
+                                                    <th className="px-6 py-4 w-12">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-[var(--primary-yellow)] focus:ring-[var(--primary-yellow)] focus:ring-offset-0"
+                                                            checked={reports.length > 0 && selectedReportIds.size === reports.length}
+                                                            onChange={handleToggleSelectAll}
+                                                        />
+                                                    </th>
                                                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider">주차 / 제목</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-right">작업</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-800/50">
                                                 {reports.map((report) => (
-                                                    <tr key={report.id} className="hover:bg-white/5 transition-colors group">
+                                                    <tr key={report.id} className={`hover:bg-white/5 transition-colors group ${selectedReportIds.has(report.id) ? 'bg-white/5' : ''}`}>
+                                                        <td className="px-6 py-4">
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-[var(--primary-yellow)] focus:ring-[var(--primary-yellow)] focus:ring-offset-0"
+                                                                checked={selectedReportIds.has(report.id)}
+                                                                onChange={() => handleToggleSelect(report.id)}
+                                                            />
+                                                        </td>
                                                         <td className="px-6 py-4">
                                                             <div className="text-xs text-[var(--primary-yellow)] font-bold mb-1">{report.week}</div>
                                                             <div className="text-sm font-medium text-white line-clamp-1">{report.title}</div>

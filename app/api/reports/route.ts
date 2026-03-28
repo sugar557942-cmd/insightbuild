@@ -59,25 +59,29 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+  const idParam = searchParams.get('id');
 
-  if (!id) {
+  if (!idParam) {
     return NextResponse.json({ success: false, error: 'Missing ID' }, { status: 400 });
   }
+
+  const ids = idParam.split(',').filter(Boolean);
 
   try {
     const { error } = await supabaseAdmin
       .from('reports')
       .delete()
-      .eq('id', id);
+      .in('id', ids);
 
     if (error) throw error;
 
     // Revalidate paths
     revalidatePath('/trends');
-    revalidatePath(`/trends/${id}`);
+    ids.forEach(id => {
+      revalidatePath(`/trends/${id}`);
+    });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, count: ids.length });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
