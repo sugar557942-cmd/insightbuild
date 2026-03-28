@@ -76,6 +76,8 @@ export default function TrendBarChart({ labels, values }: TrendBarChartProps) {
           font: {
             size: 10,
           },
+          maxRotation: 0,
+          autoSkip: false,
         },
       },
       y: {
@@ -93,7 +95,7 @@ export default function TrendBarChart({ labels, values }: TrendBarChartProps) {
   };
 
   return (
-    <div style={{ height: '160px' }}>
+    <div style={{ height: '180px' }}>
       <Bar data={data} options={options} />
     </div>
   );

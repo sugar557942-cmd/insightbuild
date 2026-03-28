@@ -150,33 +150,35 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {formattedReport.stats.map((stat: ReportStat, idx: number) => (
-            <div 
-              key={idx} 
-              className="bg-[#111111] border border-[#222222] rounded-2xl p-6 hover:border-[#333333] transition-all"
-            >
-              <div className="text-[#FFD700] text-4xl font-bold mb-2 tabular-nums">
-                {stat.value}
+        {formattedReport.stats.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+            {formattedReport.stats.map((stat: ReportStat, idx: number) => (
+              <div 
+                key={idx} 
+                className="bg-[#111111] border border-[#222222] rounded-lg p-5 hover:border-[#333333] transition-all"
+              >
+                <div className="text-[#FFD700] text-3xl font-bold tabular-nums">
+                  {stat.value}
+                </div>
+                <div className="text-[#999999] text-sm mt-1 font-medium">
+                  {stat.label}
+                </div>
+                <div className={`flex items-center gap-1.5 text-sm mt-2 font-bold
+                  ${stat.trend === 'up' ? 'text-green-400' : stat.trend === 'down' ? 'text-red-400' : 'text-[#FFD700]'}
+                `}>
+                  {stat.trend === 'up' ? '↑ ' : stat.trend === 'down' ? '↓ ' : '→ '}
+                  {cleanDelta(stat.delta || '')}
+                </div>
               </div>
-              <div className="text-[#999999] text-sm font-medium mb-4">
-                {stat.label}
-              </div>
-              <div className={`flex items-center gap-1.5 text-sm font-bold
-                ${stat.trend === 'up' ? 'text-green-400' : stat.trend === 'down' ? 'text-red-400' : 'text-[#FFD700]'}
-              `}>
-                {stat.trend === 'up' ? '↑ ' : stat.trend === 'down' ? '↓ ' : '→ '}
-                {cleanDelta(stat.delta || '')}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* [C] Main 2-Col Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           
           {/* [C-1] STEEP Analysis */}
-          <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8">
+          <div className="bg-[#111111] border border-[#222222] rounded-2xl p-6">
             <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-8 uppercase">
               STEEP ANALYSIS
             </div>
@@ -229,24 +231,26 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
               </div>
             </div>
 
-            {/* Insights Card */}
-            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8">
-              <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-6 uppercase">
-                KEY INSIGHTS
-              </div>
-              <div className="space-y-4">
-                {formattedReport.insights.map((insight: string, i: number) => (
-                  <div key={i} className={`bg-[#1a1a1a] rounded-xl p-5 border-l-4 ${i === 0 ? 'border-[#FFD700]' : 'border-green-500'} text-[#cccccc] text-sm leading-relaxed shadow-lg`}>
-                    {insight}
+              {/* Insights Card */}
+              {formattedReport.insights.length > 0 && (
+                <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8">
+                  <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-6 uppercase">
+                    KEY INSIGHTS
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div className="space-y-4">
+                    {formattedReport.insights.map((insight: string, i: number) => (
+                      <div key={i} className={`bg-[#1a1a1a] rounded-lg p-4 border-l-4 ${i === 0 ? 'border-[#FFD700]' : 'border-[#4ade80]'} text-[#cccccc] text-sm leading-relaxed shadow-lg`}>
+                        {insight}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
           </div>
         </div>
 
         {/* [D] Bottom: News Card */}
-        <div className="bg-[#111111] border border-[#222222] rounded-lg p-6 mt-6">
+        <div className="bg-[#111111] border border-[#222222] rounded-lg p-6 mt-8">
           <div className="flex items-center justify-between mb-4">
             <div className="text-[#FFD700] text-xs font-bold tracking-widest uppercase">
               THIS WEEK'S KEY NEWS
@@ -254,20 +258,38 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
           </div>
           
           <div className="flex flex-col">
-            {formattedReport.news.map((item: any, idx: number) => (
-              <Link 
-                key={idx} 
-                href={item.url}
-                className={`flex items-start gap-3 py-4 border-b border-[#1a1a1a] last:border-0 hover:bg-[#1a1a1a] transition-colors rounded px-2 -mx-2`}
-              >
-                <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
-                  {item.source}
-                </span>
-                <span className="text-white text-sm leading-relaxed">
-                  {item.title}
-                </span>
-              </Link>
-            ))}
+            {formattedReport.news.map((item: any, idx: number) => {
+              const hasUrl = item.url && item.url !== '#';
+              const content = (
+                <>
+                  <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
+                    {item.source}
+                  </span>
+                  <span className="text-white text-sm leading-relaxed">
+                    {item.title}
+                  </span>
+                </>
+              );
+
+              return hasUrl ? (
+                <a 
+                  key={idx} 
+                  href={item.url}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-3 py-4 border-b border-[#1a1a1a] last:border-0 rounded px-2 -mx-2 hover:bg-[#1a1a1a] transition-all hover:opacity-80 cursor-pointer"
+                >
+                  {content}
+                </a>
+              ) : (
+                <div 
+                  key={idx} 
+                  className="flex items-start gap-3 py-4 border-b border-[#1a1a1a] last:border-0 rounded px-2 -mx-2 cursor-default"
+                >
+                  {content}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -295,7 +317,7 @@ function SteepRow({
   };
 
   return (
-    <div className={`${isLast ? '' : 'border-b border-[#1a1a1a] pb-8 mb-0'}`}>
+    <div className={`${isLast ? '' : 'border-b border-[#1a1a1a] pb-5 mb-5'}`}>
       <div className="flex flex-col md:flex-row gap-4">
         <div className={`${styles[variant]} px-3 py-1 rounded text-xs font-bold min-w-[70px] text-center h-fit w-fit`}>
           {label}
