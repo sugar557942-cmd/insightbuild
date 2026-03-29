@@ -77,8 +77,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                     }
                 })
                 .catch(err => console.error(err));
-        } else if (activeTab === 'trends') {
-            fetchReports();
+        } else if (activeTab === 'trends' || activeTab === 'charts') {
+            if (activeTab === 'trends') fetchReports();
             fetchIndustries();
         }
     }, [activeTab]);
