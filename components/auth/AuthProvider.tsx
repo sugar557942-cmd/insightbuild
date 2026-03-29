@@ -65,7 +65,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        // PGRST116 is the error code for "JSON object requested, but no rows were returned"
+        if (error.code !== 'PGRST116') {
+          console.warn('Profile fetch note:', error.message || error);
+        }
+        setProfile(null);
       } else {
         setProfile(data);
       }

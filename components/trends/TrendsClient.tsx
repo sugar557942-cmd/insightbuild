@@ -22,8 +22,9 @@ interface NewsItem {
 
 export default function TrendsClient({ initialIndustries, initialReports, isLoggedIn }: TrendsClientProps) {
     const { user } = useAuth();
-    const [selectedCategory, setSelectedCategory] = useState(initialIndustries[0]?.name_ko || '');
+    const [selectedCategory, setSelectedCategory] = useState('전체'); // Default to 'All'
     const [searchTerm, setSearchTerm] = useState('');
+    const [categorySearch, setCategorySearch] = useState(''); // New state for sidebar category search
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authInitialView, setAuthInitialView] = useState<'login' | 'signup'>('login');
 
@@ -39,12 +40,17 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
         setIsAuthModalOpen(true);
     };
 
-    const categories = initialIndustries.map((i: any) => i.name_ko);
+    const categories = ['전체', ...initialIndustries.map((i: any) => i.name_ko)];
+    
+    // Filter industries based on category search input
+    const filteredCategories = categories.filter(category => 
+        category.toLowerCase().includes(categorySearch.toLowerCase())
+    );
     
     const formattedReports = initialReports.map((report: any) => ({
         ...report,
         weekLabel: report.week_label,
-        summary: report.summary,
+        summary: report.summary || report.insight_1 || '',
         title: report.title,
         isFeatured: report.is_featured,
         steep: {
@@ -53,16 +59,23 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
             e: report.steep_e,
             p: report.steep_p
         },
+        insight_1: report.insight_1,
         news: (report.news_refs as NewsItem[] | null) || []
     }));
 
-    const filteredReports = formattedReports.filter((report: any) => 
-        (report.industry_id === initialIndustries.find((i: any) => i.name_ko === selectedCategory)?.id || report.category === selectedCategory) &&
-        (report.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         report.summary.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredReports = formattedReports.filter((report: any) => {
+        const matchesCategory = selectedCategory === '전체' || 
+            report.industry_id === initialIndustries.find((i: any) => i.name_ko === selectedCategory)?.id || 
+            report.category === selectedCategory;
+        
+        const matchesSearch = report.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            report.summary.toLowerCase().includes(searchTerm.toLowerCase());
+            
+        return matchesCategory && matchesSearch;
+    });
 
-    const featuredReports = formattedReports.filter((r: any) => r.isFeatured);
+    const featuredReports = filteredReports.filter((r: any) => r.isFeatured);
+    const regularReports = filteredReports.filter((r: any) => !r.isFeatured);
 
     return (
         <main className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20">
@@ -85,25 +98,33 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                     <input 
                                         type="text" 
                                         placeholder="분류 검색..." 
+                                        value={categorySearch}
+                                        onChange={(e) => setCategorySearch(e.target.value)}
                                         className="w-full bg-[#1a1a1a] border border-gray-700 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-[var(--primary-yellow)] transition-colors"
                                     />
                                 </div>
                             </div>
                             <nav className="max-h-[60vh] overflow-y-auto custom-scrollbar">
-                                {categories.map((category) => (
-                                    <button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        className={`w-full text-left px-6 py-3 text-sm transition-all flex justify-between items-center group
-                                            ${selectedCategory === category 
-                                                ? 'bg-[var(--primary-yellow)] text-black font-bold' 
-                                                : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
-                                        `}
-                                    >
-                                        {category}
-                                        <ChevronRight size={14} className={selectedCategory === category ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'} />
-                                    </button>
-                                ))}
+                                {filteredCategories.length > 0 ? (
+                                    filteredCategories.map((category) => (
+                                        <button
+                                            key={category}
+                                            onClick={() => setSelectedCategory(category)}
+                                            className={`w-full text-left px-6 py-3 text-sm transition-all flex justify-between items-center group
+                                                ${selectedCategory === category 
+                                                    ? 'bg-[var(--primary-yellow)] text-black font-bold' 
+                                                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
+                                            `}
+                                        >
+                                            {category}
+                                            <ChevronRight size={14} className={selectedCategory === category ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 transition-opacity'} />
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-6 py-4 text-xs text-gray-600">
+                                        검색 결과가 없습니다.
+                                    </div>
+                                )}
                             </nav>
                         </div>
                     </aside>
@@ -112,7 +133,7 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                     <section className="lg:w-3/4 overflow-hidden relative">
                         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <h2 className="text-2xl font-bold border-l-4 border-[var(--primary-yellow)] pl-4">
-                                {selectedCategory} <span className="text-gray-500 text-lg font-normal ml-2">({filteredReports.filter(r => !r.isFeatured).length})</span>
+                                {selectedCategory} <span className="text-gray-500 text-lg font-normal ml-2">({filteredReports.length})</span>
                             </h2>
                             <div className="relative w-full md:w-64">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
@@ -197,8 +218,8 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                 ))}
 
                                 <div className="grid gap-4">
-                                    {filteredReports.filter(r => !r.isFeatured).length > 0 ? (
-                                        filteredReports.filter(r => !r.isFeatured).map((report) => (
+                                    {regularReports.length > 0 ? (
+                                        regularReports.map((report) => (
                                             <Link 
                                                 key={report.id}
                                                 href={`/trends/${report.id}`}
@@ -224,12 +245,14 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                             </Link>
                                         ))
                                     ) : (
-                                        <div className="bg-[#111] border border-dashed border-gray-800 rounded-2xl p-20 text-center">
-                                            <FileText size={48} className="mx-auto text-gray-700 mb-4" />
-                                            <p className="text-gray-500">
-                                                {searchTerm ? '검색 결과가 없습니다.' : '해당 카테고리에 등록된 보고서가 없습니다.'}
-                                            </p>
-                                        </div>
+                                        featuredReports.length === 0 && (
+                                            <div className="bg-[#111] border border-dashed border-gray-800 rounded-2xl p-20 text-center">
+                                                <FileText size={48} className="mx-auto text-gray-700 mb-4" />
+                                                <p className="text-gray-500">
+                                                    {searchTerm ? '검색 결과가 없습니다.' : '해당 카테고리에 등록된 보고서가 없습니다.'}
+                                                </p>
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             </div>

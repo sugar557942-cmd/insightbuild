@@ -15,11 +15,12 @@ export async function generateStaticParams() {
   })) || [];
 }
 
-interface ReportStat {
-  value: string;
-  label: string;
-  delta: string;
-  trend: string;
+interface MarketChart {
+  title: string;
+  unit: string;
+  source: string;
+  labels: string[];
+  values: number[];
 }
 
 interface NewsItem {
@@ -35,7 +36,7 @@ interface FormattedReport {
   category: string;
   week_label: string;
   tags: string[];
-  stats: ReportStat[];
+  image_url: string;
   steep: {
     s: string;
     t: string;
@@ -44,10 +45,7 @@ interface FormattedReport {
     p: string;
   };
   insights: string[];
-  chartData: {
-    labels: string[];
-    values: number[];
-  };
+  market_charts: MarketChart[];
   news: NewsItem[];
 }
 
@@ -81,11 +79,6 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
   const formattedReport: FormattedReport = {
     ...report,
     tags: (report.tags as string[] | null) || [],
-    stats: [
-      { value: report.stat_1_value || '', label: report.stat_1_label || '', delta: report.stat_1_delta || '', trend: report.stat_1_trend || '' },
-      { value: report.stat_2_value || '', label: report.stat_2_label || '', delta: report.stat_2_delta || '', trend: report.stat_2_trend || '' },
-      { value: report.stat_3_value || '', label: report.stat_3_label || '', delta: report.stat_3_delta || '', trend: report.stat_3_trend || '' },
-    ].filter((s: ReportStat): s is ReportStat => !!s.value),
     steep: {
       s: report.steep_s || '',
       t: report.steep_t || '',
@@ -94,10 +87,8 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
       p: report.steep_p || '',
     },
     insights: [report.insight_1, report.insight_2].filter((i: string | null): i is string => Boolean(i)),
-    chartData: {
-      labels: (report.chart_labels as string[] | null) || [],
-      values: (report.chart_values as number[] | null) || [],
-    },
+    image_url: report.image_url || '',
+    market_charts: (report.market_charts as MarketChart[] | null) || [],
     news: (report.news_refs as NewsItem[] | null) || [],
   };
 
@@ -108,35 +99,45 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20">
       <div className="container mx-auto px-4">
-        {/* [A] Header */}
-        <div className="mb-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <Link 
-              href="/trends" 
-              className="flex items-center gap-2 text-[#999999] hover:text-white transition-colors text-sm"
-            >
-              <ChevronLeft size={18} />
-              Industry Trends Report
-            </Link>
-            <div className="flex items-center gap-3">
-              <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-medium">
-                {formattedReport.week_label}
-              </span>
-              <span className="bg-[#FFD700] text-black text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1">
-                AUTO GENERATED
-              </span>
+        {/* [A] Header with potential Image Background */}
+        <div className="relative mb-10">
+          {formattedReport.image_url && (
+            <div className="absolute -inset-x-4 -top-24 h-[400px] z-0 opacity-40">
+              <img 
+                src={formattedReport.image_url} 
+                className="w-full h-full object-cover" 
+                alt="Background"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/20 via-[#0a0a0a]/80 to-[#0a0a0a]"></div>
             </div>
-          </div>
+          )}
           
-          <div className="text-[#FFD700] text-sm font-bold mb-3 tracking-wide">
-            {formattedReport.category}
+          <div className="relative z-10 pt-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <Link 
+                href="/trends" 
+                className="flex items-center gap-2 text-[#999999] hover:text-white transition-colors text-sm"
+              >
+                <ChevronLeft size={18} />
+                Industry Trends Report
+              </Link>
+              <div className="flex items-center gap-3">
+                <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-medium">
+                  {formattedReport.week_label}
+                </span>
+                <span className="bg-[#FFD700] text-black text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                  AUTO GENERATED
+                </span>
+              </div>
+            </div>
+            
+            <div className="text-[#FFD700] text-sm font-bold mb-3 tracking-wide">
+              {formattedReport.category}
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight leading-tight">
+              {formattedReport.title}
+            </h1>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight leading-tight">
-            {formattedReport.title}
-          </h1>
-          <p className="text-[#999999] text-lg leading-relaxed max-w-3xl mb-8">
-            {formattedReport.summary}
-          </p>
           
           <div className="flex flex-wrap gap-2">
             {formattedReport.tags.map((tag: string) => (
@@ -150,29 +151,6 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
           </div>
         </div>
 
-        {formattedReport.stats.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-            {formattedReport.stats.map((stat: ReportStat, idx: number) => (
-              <div 
-                key={idx} 
-                className="bg-[#111111] border border-[#222222] rounded-lg p-5 hover:border-[#333333] transition-all"
-              >
-                <div className="text-[#FFD700] text-3xl font-bold tabular-nums">
-                  {stat.value}
-                </div>
-                <div className="text-[#999999] text-sm mt-1 font-medium">
-                  {stat.label}
-                </div>
-                <div className={`flex items-center gap-1.5 text-sm mt-2 font-bold
-                  ${stat.trend === 'up' ? 'text-green-400' : stat.trend === 'down' ? 'text-red-400' : 'text-[#FFD700]'}
-                `}>
-                  {stat.trend === 'up' ? '↑ ' : stat.trend === 'down' ? '↓ ' : '→ '}
-                  {cleanDelta(stat.delta || '')}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* [C] Main 2-Col Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
@@ -215,23 +193,32 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
 
           {/* [C-2] Charts & Insights */}
           <div className="flex flex-col gap-8">
-            {/* Chart Card */}
-            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col h-full">
-              <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-6 uppercase flex justify-between items-center">
-                WEEKLY TREND
-                <Info size={14} className="text-gray-600 cursor-help" />
-              </div>
-              <div className="flex-grow flex items-center justify-center">
-                <div className="w-full">
-                  <TrendBarChart labels={formattedReport.chartData.labels} values={formattedReport.chartData.values} />
+            {/* Market Charts Section */}
+            {formattedReport.market_charts.map((chart, idx) => (
+              <div key={idx} className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] uppercase mb-1">
+                      {chart.title || 'Market Size Data'}
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-medium">
+                      Unit: {chart.unit}
+                    </div>
+                  </div>
+                  <Info size={14} className="text-gray-600 cursor-help" />
+                </div>
+                
+                <div className="h-[200px] mb-4">
+                  <TrendBarChart labels={chart.labels} values={chart.values} />
+                </div>
+                
+                <div className="text-[#666666] text-[10px] text-right">
+                  Source: {chart.source}
                 </div>
               </div>
-              <div className="text-[#666666] text-xs text-center mt-6">
-                최근 8주간 관련 키워드 도출 빈도 및 관심도 추이 ({formattedReport.chartData.labels[0]} - {formattedReport.chartData.labels[formattedReport.chartData.labels.length - 1]})
-              </div>
-            </div>
+            ))}
 
-              {/* Insights Card */}
+            {/* Insights Card */}
               {formattedReport.insights.length > 0 && (
                 <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8">
                   <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-6 uppercase">
