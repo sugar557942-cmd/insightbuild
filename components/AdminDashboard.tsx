@@ -297,7 +297,17 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             if (i !== chartIdx) return c;
             const nextLabels = [...c.labels];
             const nextValues = [...c.values];
-            if (field === 'label') nextLabels[dataIdx] = value;
+            if (field === 'label') {
+                nextLabels[dataIdx] = value;
+                if (dataIdx === 0) {
+                    const startYear = parseInt(value);
+                    if (!isNaN(startYear)) {
+                        for (let j = 1; j < nextLabels.length; j++) {
+                            nextLabels[j] = (startYear + j).toString();
+                        }
+                    }
+                }
+            }
             else nextValues[dataIdx] = value === '' ? '' : (parseFloat(value) || 0);
             return { ...c, labels: nextLabels, values: nextValues };
         }));
@@ -734,11 +744,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                             type="number"
                                                             value={chart.values[yidx]} 
                                                             onChange={(e) => handleChartDataChange(cidx, yidx, 'value', e.target.value)}
-                                                            onFocus={(e) => {
-                                                                if (chart.values[yidx] === 0 || chart.values[yidx] === '0') {
-                                                                    handleChartDataChange(cidx, yidx, 'value', '');
-                                                                }
-                                                            }}
+                                                            onFocus={(e) => e.target.select()}
                                                             className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold outline-none focus:border-gray-600 hover:border-gray-700 transition-colors"
                                                         />
                                                     </div>
