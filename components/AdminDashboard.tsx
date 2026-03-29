@@ -298,7 +298,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             const nextLabels = [...c.labels];
             const nextValues = [...c.values];
             if (field === 'label') nextLabels[dataIdx] = value;
-            else nextValues[dataIdx] = parseFloat(value) || 0;
+            else nextValues[dataIdx] = value === '' ? '' : (parseFloat(value) || 0);
             return { ...c, labels: nextLabels, values: nextValues };
         }));
     };
@@ -345,7 +345,10 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                 },
                 body: JSON.stringify({
                     industry_id: selectedIndustryForCharts,
-                    market_charts: editingCharts
+                    market_charts: editingCharts.map(c => ({
+                        ...c,
+                        values: c.values.map((v: any) => v === '' ? 0 : v)
+                    }))
                 })
             });
             const result = await res.json();
@@ -719,18 +722,24 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
 
                                             <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
                                                 {chart.labels.map((year: string, yidx: number) => (
-                                                    <div key={yidx} className="space-y-1">
+                                                    <div key={yidx} className="space-y-2">
                                                         <input 
                                                             type="text"
                                                             value={year}
                                                             onChange={(e) => handleChartDataChange(cidx, yidx, 'label', e.target.value)}
-                                                            className="w-full bg-transparent border-none text-[10px] text-gray-600 text-center outline-none focus:text-gray-400"
+                                                            className="w-full bg-black border border-gray-800 rounded p-1 text-[10px] text-gray-400 text-center outline-none focus:border-gray-600 hover:border-gray-700 transition-colors"
+                                                            placeholder="연도"
                                                         />
                                                         <input 
                                                             type="number"
                                                             value={chart.values[yidx]} 
                                                             onChange={(e) => handleChartDataChange(cidx, yidx, 'value', e.target.value)}
-                                                            className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold outline-none focus:border-gray-600"
+                                                            onFocus={(e) => {
+                                                                if (chart.values[yidx] === 0 || chart.values[yidx] === '0') {
+                                                                    handleChartDataChange(cidx, yidx, 'value', '');
+                                                                }
+                                                            }}
+                                                            className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold outline-none focus:border-gray-600 hover:border-gray-700 transition-colors"
                                                         />
                                                     </div>
                                                 ))}
