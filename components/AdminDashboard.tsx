@@ -39,6 +39,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         id: '',
         title: '',
         industry_id: 1,
+        category: 'AI · 테크 플랫폼',
+        summary: '',
         week: `2026-W${getWeek()}`,
         week_label: '',
         image_url: '',
@@ -201,6 +203,21 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             return;
         }
 
+        // Ensure required fields like category and summary are present
+        const reportToSave = { ...editingReport };
+        
+        if (!reportToSave.category && industries.length > 0) {
+            const currentInd = industries.find(ind => ind.id === reportToSave.industry_id);
+            if (currentInd) {
+                reportToSave.category = currentInd.category;
+            }
+        }
+        
+        // If summary is missing, fallback to insight_1 or empty string
+        if (!reportToSave.summary) {
+            reportToSave.summary = reportToSave.insight_1 || '';
+        }
+    
         setIsSavingReport(true);
         try {
             const res = await fetch('/api/reports', {
@@ -209,7 +226,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer 58a370b5e0c06be8b7a80d9b504f532bf00a46287feecc23c909b98217ebfdc8'
                 },
-                body: JSON.stringify(editingReport)
+                body: JSON.stringify(reportToSave)
             });
             const result = await res.json();
             if (result.success) {
@@ -861,7 +878,12 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                 <label className="text-xs font-bold text-gray-400 uppercase">산업 분야 선택</label>
                                                 <select 
                                                     value={editingReport.industry_id}
-                                                    onChange={(e) => handleReportChange('industry_id', parseInt(e.target.value))}
+                                                    onChange={(e) => {
+                                                        const id = parseInt(e.target.value);
+                                                        const ind = industries.find(i => i.id === id);
+                                                        handleReportChange('industry_id', id);
+                                                        if (ind) handleReportChange('category', ind.category);
+                                                    }}
                                                     className="w-full bg-black border border-gray-800 rounded p-3 text-sm focus:border-[var(--primary-yellow)] outline-none"
                                                 >
                                                     {industries.map(ind => (
