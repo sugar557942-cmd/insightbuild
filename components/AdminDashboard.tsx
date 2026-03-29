@@ -292,6 +292,17 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     // Chart / CAGR Logic
     const tenYears = ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034'];
 
+    const handleChartDataChange = (chartIdx: number, dataIdx: number, field: 'label' | 'value', value: string) => {
+        setEditingCharts(prev => prev.map((c, i) => {
+            if (i !== chartIdx) return c;
+            const nextLabels = [...c.labels];
+            const nextValues = [...c.values];
+            if (field === 'label') nextLabels[dataIdx] = value;
+            else nextValues[dataIdx] = parseFloat(value) || 0;
+            return { ...c, labels: nextLabels, values: nextValues };
+        }));
+    };
+
     const applyCAGR = (chartIdx: number) => {
         const cagr = parseFloat(cagrInputs[chartIdx]);
         if (isNaN(cagr)) {
@@ -311,7 +322,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         const r = cagr / 100;
         const newValues = [...chart.values];
 
-        for (let i = 0; i < tenYears.length; i++) {
+        for (let i = 0; i < chart.labels.length; i++) {
             if (i === baseIdx) continue;
             // Value_t = Value_base * (1 + r)^(t - base)
             const diff = i - baseIdx;
@@ -354,8 +365,18 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     useEffect(() => {
         if (activeTab === 'charts' && industries.length > 0) {
             const industry = industries.find(i => i.id === selectedIndustryForCharts);
-            if (industry && industry.market_charts) {
-                setEditingCharts(industry.market_charts);
+            if (industry && industry.market_charts && industry.market_charts.length > 0) {
+                // Ensure every chart has 10 slots and labels/values are initialized
+                const initialCharts = industry.market_charts.map((c: any) => ({
+                    ...c,
+                    labels: c.labels || tenYears,
+                    values: c.values || Array(10).fill(0)
+                }));
+                // Fill if less than 3
+                while (initialCharts.length < 3) {
+                    initialCharts.push({ title: '', unit: '', source: '', labels: tenYears, values: Array(10).fill(0) });
+                }
+                setEditingCharts(initialCharts);
             } else {
                 setEditingCharts([
                     { title: '', unit: '', source: '', labels: tenYears, values: Array(10).fill(0) },
@@ -697,18 +718,19 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                             </div>
 
                                             <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
-                                                {tenYears.map((year, yidx) => (
-                                                    <div key={year} className="space-y-1">
-                                                        <div className="text-[10px] text-gray-600 text-center">{year}</div>
+                                                {chart.labels.map((year: string, yidx: number) => (
+                                                    <div key={yidx} className="space-y-1">
+                                                        <input 
+                                                            type="text"
+                                                            value={year}
+                                                            onChange={(e) => handleChartDataChange(cidx, yidx, 'label', e.target.value)}
+                                                            className="w-full bg-transparent border-none text-[10px] text-gray-600 text-center outline-none focus:text-gray-400"
+                                                        />
                                                         <input 
                                                             type="number"
                                                             value={chart.values[yidx]} 
-                                                            onChange={(e) => {
-                                                                const newCharts = [...editingCharts];
-                                                                newCharts[cidx].values[yidx] = parseInt(e.target.value) || 0;
-                                                                setEditingCharts(newCharts);
-                                                            }}
-                                                            className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold"
+                                                            onChange={(e) => handleChartDataChange(cidx, yidx, 'value', e.target.value)}
+                                                            className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold outline-none focus:border-gray-600"
                                                         />
                                                     </div>
                                                 ))}

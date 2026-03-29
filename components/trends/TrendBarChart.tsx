@@ -23,26 +23,26 @@ ChartJS.register(
 interface TrendBarChartProps {
   labels: string[];
   values: number[];
+  color?: string;
 }
 
-export default function TrendBarChart({ labels, values }: TrendBarChartProps) {
-  const colors = [
-    '#2a1f00',
-    '#3d2d00',
-    '#4d3900',
-    '#614800',
-    '#7a5c00',
-    '#997500',
-    '#b89000',
-    '#FFD700',
-  ];
+export default function TrendBarChart({ labels, values, color = '#FFD700' }: TrendBarChartProps) {
+  // Generate shades of the provided color
+  const generateShades = (hex: string) => {
+    // Basic approach: return original color for all for now, or could do light/dark
+    // For simplicity and premium feel, we'll use the main color for the last bar and 
+    // a dimmer version for others, similar to the original design
+    return labels.map((_, i) => i === labels.length - 1 ? hex : `${hex}33`);
+  };
+
+  const backgroundColor = generateShades(color);
 
   const data = {
     labels: labels,
     datasets: [
       {
         data: values,
-        backgroundColor: colors,
+        backgroundColor: backgroundColor,
         borderRadius: 4,
         barThickness: 24,
       },
@@ -58,9 +58,9 @@ export default function TrendBarChart({ labels, values }: TrendBarChartProps) {
       },
       tooltip: {
         backgroundColor: '#1a1a1a',
-        titleColor: '#FFD700',
+        titleColor: color,
         bodyColor: '#ffffff',
-        borderColor: '#FFD700',
+        borderColor: color,
         borderWidth: 1,
         padding: 10,
         displayColors: false,

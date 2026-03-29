@@ -6,6 +6,8 @@ interface IndustryChartsProps {
     charts: any[];
 }
 
+const CHART_COLORS = ['#FFD700', '#22D3EE', '#A78BFA'];
+
 export default function IndustryCharts({ charts }: IndustryChartsProps) {
     if (!charts || charts.length === 0) return null;
 
@@ -68,7 +70,7 @@ export default function IndustryCharts({ charts }: IndustryChartsProps) {
                                             {data.map((entry: any, index: number) => (
                                                 <Cell 
                                                     key={`cell-${index}`} 
-                                                    fill={index === data.length - 1 ? '#FFD700' : '#333'} 
+                                                    fill={index === data.length - 1 ? CHART_COLORS[idx % CHART_COLORS.length] : '#333'} 
                                                     fillOpacity={0.8}
                                                 />
                                             ))}

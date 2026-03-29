@@ -55,13 +55,13 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
   const { data: { session } } = await supabase.auth.getSession();
   const isLoggedIn = !!session;
 
-  const { data: report } = await supabaseAdmin
+  const { data: report, error } = await supabaseAdmin
     .from('reports')
     .select('*, industries(market_charts)')
     .eq('id', reportId)
     .single();
 
-  if (!report) {
+  if (error || !report) {
     notFound();
   }
 
@@ -91,9 +91,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
     news: (report.news_refs as NewsItem[] | null) || [],
   };
 
-  const cleanDelta = (delta: string) => {
-    return delta ? delta.replace(/^[▲▼▷↑↓→\s]+/, '').trim() : '';
-  };
+  const CHART_COLORS = ['#FFD700', '#22D3EE', '#A78BFA'];
 
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20">
@@ -194,10 +192,10 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
           <div className="flex flex-col gap-8">
             {/* Market Charts Section */}
             {formattedReport.market_charts.map((chart, idx) => (
-              <div key={idx} className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col">
+              <div key={idx} className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col hover:border-gray-700 transition-colors">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] uppercase mb-1">
+                    <div className="text-xs font-bold tracking-[0.2em] uppercase mb-1" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
                       {chart.title || 'Market Size Data'}
                     </div>
                     <div className="text-[10px] text-gray-500 font-medium">
@@ -208,7 +206,11 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
                 </div>
                 
                 <div className="h-[200px] mb-4">
-                  <TrendBarChart labels={chart.labels} values={chart.values} />
+                  <TrendBarChart 
+                    labels={chart.labels} 
+                    values={chart.values} 
+                    color={CHART_COLORS[idx % CHART_COLORS.length]}
+                  />
                 </div>
                 
                 <div className="text-[#666666] text-[10px] text-right">
