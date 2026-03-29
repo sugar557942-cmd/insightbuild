@@ -26,6 +26,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [editingReport, setEditingReport] = useState<any | null>(null);
     const [isSavingReport, setIsSavingReport] = useState(false);
     const [industries, setIndustries] = useState<any[]>([]);
+    const [bulkNewsText, setBulkNewsText] = useState('');
 
     const getWeek = () => {
         const d = new Date();
@@ -258,6 +259,27 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         const newNews = [...editingReport.news_refs];
         newNews[index] = { ...newNews[index], [field]: value };
         handleReportChange('news_refs', newNews);
+    };
+
+    const handleBulkNewsPaste = () => {
+        if (!bulkNewsText.trim()) return;
+
+        // Non-empty lines
+        const lines = bulkNewsText.split('\n').map(l => l.trim()).filter(l => l !== '');
+        const newNews = [...emptyReport.news_refs]; // Start with clean slots
+
+        let newsIdx = 0;
+        for (let i = 0; i < lines.length; i += 2) {
+            if (newsIdx >= 10) break;
+            const title = lines[i];
+            const url = lines[i + 1] || '#';
+            newNews[newsIdx] = { title, url };
+            newsIdx++;
+        }
+
+        handleReportChange('news_refs', newNews);
+        setBulkNewsText('');
+        alert(`${newsIdx}개의 뉴스가 자동으로 채워졌습니다.`);
     };
 
     const handleReportImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1111,7 +1133,29 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
 
                                         {/* News Slots */}
                                         <div className="space-y-4">
-                                            <label className="text-xs font-bold text-gray-500 uppercase">뉴스 슬롯 (최대 10개)</label>
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">뉴스 슬롯 (최대 10개)</label>
+                                                <div className="text-[10px] text-gray-600">제목 한 줄, URL 한 줄 순서로 붙여넣으세요</div>
+                                            </div>
+                                            
+                                            {/* Bulk Paste Area */}
+                                            <div className="p-4 bg-[#0a0a0a] border border-gray-800 rounded-lg space-y-3">
+                                                <textarea 
+                                                    placeholder="여기에 뉴스 리스트를 붙여넣으세요 (제목, URL 순서)"
+                                                    value={bulkNewsText}
+                                                    onChange={(e) => setBulkNewsText(e.target.value)}
+                                                    rows={3}
+                                                    className="w-full bg-black border border-gray-800 rounded p-2 text-xs text-gray-400 outline-none focus:border-gray-600"
+                                                />
+                                                <button 
+                                                    onClick={handleBulkNewsPaste}
+                                                    className="w-full py-2 bg-gray-900 text-gray-300 rounded text-xs font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Plus size={14} />
+                                                    뉴스 자동 채우기 (Bulk Parse)
+                                                </button>
+                                            </div>
+
                                             <div className="space-y-3">
                                                 {editingReport.news_refs.map((news: any, idx: number) => (
                                                     <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
