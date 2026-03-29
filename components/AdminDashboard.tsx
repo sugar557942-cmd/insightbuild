@@ -49,11 +49,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             { title: '', unit: '', source: '', labels: ['2023', '2024', '2025', '2026', '2027', '2028'], values: [0, 0, 0, 0, 0, 0] }
         ],
         news_refs: [
-            { title: '', source: '', url: '' },
-            { title: '', source: '', url: '' },
-            { title: '', source: '', url: '' },
-            { title: '', source: '', url: '' },
-            { title: '', source: '', url: '' }
+            { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' },
+            { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' }, { title: '', url: '' }
         ]
     };
 
@@ -1092,13 +1089,22 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
 
                                         {/* News Slots */}
                                         <div className="space-y-4">
-                                            <label className="text-xs font-bold text-gray-500 uppercase">뉴스 슬롯 (최대 5개)</label>
+                                            <label className="text-xs font-bold text-gray-500 uppercase">뉴스 슬롯 (최대 10개)</label>
                                             <div className="space-y-3">
                                                 {editingReport.news_refs.map((news: any, idx: number) => (
-                                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                                                        <input placeholder="출처" value={news.source} onChange={(e) => handleNewsChange(idx, 'source', e.target.value)} className="bg-black border border-gray-800 rounded p-2 text-xs" />
-                                                        <input placeholder="제목" value={news.title} onChange={(e) => handleNewsChange(idx, 'title', e.target.value)} className="bg-black border border-gray-800 rounded p-2 text-xs md:col-span-1" />
-                                                        <input placeholder="URL (#이면 클릭불가)" value={news.url} onChange={(e) => handleNewsChange(idx, 'url', e.target.value)} className="bg-black border border-gray-800 rounded p-2 text-xs" />
+                                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                        <input 
+                                                            placeholder="제목" 
+                                                            value={news.title} 
+                                                            onChange={(e) => handleNewsChange(idx, 'title', e.target.value)} 
+                                                            className="bg-black border border-gray-800 rounded p-2 text-xs" 
+                                                        />
+                                                        <input 
+                                                            placeholder="URL (#이면 클릭불가)" 
+                                                            value={news.url} 
+                                                            onChange={(e) => handleNewsChange(idx, 'url', e.target.value)} 
+                                                            className="bg-black border border-gray-800 rounded p-2 text-xs" 
+                                                        />
                                                     </div>
                                                 ))}
                                             </div>

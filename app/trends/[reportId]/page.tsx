@@ -25,7 +25,6 @@ interface MarketChart {
 
 interface NewsItem {
   title: string;
-  source: string;
   url: string;
 }
 
@@ -249,9 +248,6 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
               const hasUrl = item.url && item.url !== '#';
               const content = (
                 <>
-                  <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-2 py-0.5 rounded flex-shrink-0 mt-0.5">
-                    {item.source}
-                  </span>
                   <span className="text-white text-sm leading-relaxed">
                     {item.title}
                   </span>

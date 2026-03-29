@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS reports (
   insight_2 TEXT,
   chart_labels TEXT[],
   chart_values INTEGER[],
+  image_url TEXT,
+  market_charts JSONB,
   news_count INTEGER DEFAULT 0,
   news_refs JSONB,
   published_at TIMESTAMPTZ DEFAULT NOW(),
@@ -66,6 +68,7 @@ INSERT INTO reports (
   steep_s, steep_t, steep_e, steep_e2, steep_p,
   insight_1, insight_2,
   chart_labels, chart_values,
+  image_url, market_charts,
   news_count, news_refs
 ) VALUES (
   'agentic-ai-2026-w13',
@@ -89,12 +92,14 @@ INSERT INTO reports (
   '국내 기업은 에이전트 도입 초기 단계이나, 네이버·카카오의 API 공개 예고는 국내 에이전트 생태계 경쟁을 6~12개월 앞당길 수 있다.',
   ARRAY['W06', 'W07', 'W08', 'W09', 'W10', 'W11', 'W12', 'W13'],
   ARRAY[120, 150, 180, 210, 240, 310, 380, 420],
+  'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=2000',
+  '[{"title": "글로벌 AI 반도체 시장 규모", "unit": "$B", "source": "Gartner, 2024", "labels": ["2023", "2024", "2025", "2026", "2027", "2028"], "values": [120, 150, 210, 310, 450, 600]}]'::jsonb,
   5,
   '[
-    {"title": "Google unveils 10 new Gemini agents for enterprise automation, targets $10B ARR by 2027", "source": "VentureBeat", "url": "#"},
-    {"title": "네이버 클로바, 에이전트 API 베타 공개 예고 — 개발자 신청 접수 시작", "source": "블로터", "url": "#"},
-    {"title": "Anthropic Claude hits $3B ARR milestone, driven by enterprise agent workloads", "source": "TechCrunch", "url": "#"},
-    {"title": "국내 대기업 AI 에이전트 파일럿 도입 사례 급증 — 제조·금융·유통 3개 섹터 선도", "source": "ZDNet Korea", "url": "#"},
-    {"title": "OpenAI Operator revenue surpasses GPT-4 API in 6 months, reshaping enterprise AI spend", "source": "The Information", "url": "#"}
+    {"title": "Google unveils 10 new Gemini agents for enterprise automation, targets $10B ARR by 2027", "url": "#"},
+    {"title": "네이버 클로바, 에이전트 API 베타 공개 예고 — 개발자 신청 접수 시작", "url": "#"},
+    {"title": "Anthropic Claude hits $3B ARR milestone, driven by enterprise agent workloads", "url": "#"},
+    {"title": "국내 대기업 AI 에이전트 파일럿 도입 사례 급증 — 제조·금융·유통 3개 섹터 선도", "url": "#"},
+    {"title": "OpenAI Operator revenue surpasses GPT-4 API in 6 months, reshaping enterprise AI spend", "url": "#"}
   ]'::jsonb
 ) ON CONFLICT (id) DO NOTHING;

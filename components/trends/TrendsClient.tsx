@@ -16,7 +16,6 @@ interface TrendsClientProps {
 
 interface NewsItem {
     title: string;
-    source: string;
     url: string;
 }
 
@@ -194,9 +193,6 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                                 <div className="space-y-0 flex-grow">
                                                     {featured.news.slice(0, 4).map((item: any, nidx: number) => (
                                                         <div key={nidx} className="border-b border-[#1a1a1a] py-3 flex items-start gap-3 last:border-0 hover:bg-white/5 transition-colors px-2 -mx-2 rounded">
-                                                            <span className="bg-[#222222] text-[#FFD700] text-xs font-medium px-1.5 py-0.5 rounded whitespace-nowrap mt-0.5">
-                                                                {item.source}
-                                                            </span>
                                                             <span className="text-white text-xs line-clamp-1">
                                                                 {item.title}
                                                             </span>
