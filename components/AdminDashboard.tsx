@@ -62,6 +62,10 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     };
 
     useEffect(() => {
+        fetchIndustries();
+    }, []);
+
+    useEffect(() => {
         if (activeTab === 'stats') {
             fetch('/api/visitors/stats')
                 .then(res => res.json())
@@ -79,7 +83,6 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                 .catch(err => console.error(err));
         } else if (activeTab === 'trends' || activeTab === 'charts') {
             if (activeTab === 'trends') fetchReports();
-            fetchIndustries();
         }
     }, [activeTab]);
 
