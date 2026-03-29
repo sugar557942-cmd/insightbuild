@@ -7,6 +7,7 @@ import { ChevronRight, FileText, Search } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import RestrictedAccess from '../auth/RestrictedAccess';
+import IndustryCharts from './IndustryCharts';
 
 interface TrendsClientProps {
     initialIndustries: any[];
@@ -145,6 +146,13 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                 />
                             </div>
                         </div>
+
+                        {/* Industry-Level Market Charts */}
+                        {selectedCategory !== '전체' && (
+                            <IndustryCharts 
+                                charts={initialIndustries.find(i => i.name_ko === selectedCategory)?.market_charts || []} 
+                            />
+                        )}
 
                         <div className={`relative ${!isUserLoggedIn ? 'min-h-[600px]' : ''}`}>
                             {/* Blurrable Content */}

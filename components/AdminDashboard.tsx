@@ -27,6 +27,10 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [isSavingReport, setIsSavingReport] = useState(false);
     const [industries, setIndustries] = useState<any[]>([]);
     const [bulkNewsText, setBulkNewsText] = useState('');
+    const [selectedIndustryForCharts, setSelectedIndustryForCharts] = useState<number>(1);
+    const [editingCharts, setEditingCharts] = useState<any[]>([]);
+    const [isSavingCharts, setIsSavingCharts] = useState(false);
+    const [cagrInputs, setCagrInputs] = useState<Record<number, string>>({}); // { chartIdx: cagrValue }
 
     const getWeek = () => {
         const d = new Date();
@@ -282,6 +286,83 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         alert(`${newsIdx}개의 뉴스가 자동으로 채워졌습니다.`);
     };
 
+    // Chart / CAGR Logic
+    const tenYears = ['2025', '2026', '2027', '2028', '2029', '2030', '2031', '2032', '2033', '2034'];
+
+    const applyCAGR = (chartIdx: number) => {
+        const cagr = parseFloat(cagrInputs[chartIdx]);
+        if (isNaN(cagr)) {
+            alert('CAGR 값을 입력해 주세요 (숫자)');
+            return;
+        }
+
+        const chart = editingCharts[chartIdx];
+        // Find the first non-zero value as our base
+        const baseIdx = chart.values.findIndex((v: number) => v > 0);
+        if (baseIdx === -1) {
+            alert('기준이 될 값(0보다 큰 값)을 적어도 하나 입력해 주세요.');
+            return;
+        }
+
+        const baseValue = chart.values[baseIdx];
+        const r = cagr / 100;
+        const newValues = [...chart.values];
+
+        for (let i = 0; i < tenYears.length; i++) {
+            if (i === baseIdx) continue;
+            // Value_t = Value_base * (1 + r)^(t - base)
+            const diff = i - baseIdx;
+            newValues[i] = Math.round(baseValue * Math.pow(1 + r, diff));
+        }
+
+        const newCharts = [...editingCharts];
+        newCharts[chartIdx] = { ...chart, values: newValues };
+        setEditingCharts(newCharts);
+    };
+
+    const handleSaveCharts = async () => {
+        setIsSavingCharts(true);
+        try {
+            const res = await fetch('/api/industries/charts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer 58a370b5e0c06be8b7a80d9b504f532bf00a46287feecc23c909b98217ebfdc8'
+                },
+                body: JSON.stringify({
+                    industry_id: selectedIndustryForCharts,
+                    market_charts: editingCharts
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('차트가 저장되었습니다.');
+                fetchIndustries(); // Refresh local list
+            } else {
+                alert(`저장 실패: ${result.error}`);
+            }
+        } catch (error) {
+            alert('저장 중 오류가 발생했습니다.');
+        } finally {
+            setIsSavingCharts(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'charts' && industries.length > 0) {
+            const industry = industries.find(i => i.id === selectedIndustryForCharts);
+            if (industry && industry.market_charts) {
+                setEditingCharts(industry.market_charts);
+            } else {
+                setEditingCharts([
+                    { title: '', unit: '', source: '', labels: tenYears, values: Array(10).fill(0) },
+                    { title: '', unit: '', source: '', labels: tenYears, values: Array(10).fill(0) },
+                    { title: '', unit: '', source: '', labels: tenYears, values: Array(10).fill(0) }
+                ]);
+            }
+        }
+    }, [activeTab, selectedIndustryForCharts, industries]);
+
     const handleReportImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -466,6 +547,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         { id: 'about', label: 'About' },
         { id: 'portfolio', label: 'Portfolio' },
         { id: 'trends', label: 'Trends' },
+        { id: 'charts', label: 'Charts' },
         { id: 'contact', label: 'Contact' },
         { id: 'stats', label: 'Visitor' },
     ];
@@ -519,6 +601,120 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                 <div className="flex-1 overflow-y-auto p-8 bg-black">
                     <div className="max-w-3xl mx-auto space-y-8">
                         <h2 className="text-2xl font-bold text-white capitalize mb-6">{activeTab} Section Edit</h2>
+
+                        {activeTab === 'charts' && (
+                            <div className="space-y-8">
+                                <div className="flex items-center justify-between bg-[#111] p-6 rounded-xl border border-gray-800">
+                                    <div className="space-y-1">
+                                        <h3 className="text-lg font-bold text-white">산업별 공용 차트 관리</h3>
+                                        <p className="text-xs text-gray-500">보고서 전체에 공통으로 노출될 10개년 시장 규모 차트를 설정합니다.</p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <select 
+                                            value={selectedIndustryForCharts}
+                                            onChange={(e) => setSelectedIndustryForCharts(parseInt(e.target.value))}
+                                            className="bg-black border border-gray-800 rounded p-2 text-sm text-[var(--primary-yellow)] font-bold outline-none"
+                                        >
+                                            {industries.map(ind => (
+                                                <option key={ind.id} value={ind.id}>{ind.name_ko}</option>
+                                            ))}
+                                        </select>
+                                        <button 
+                                            onClick={handleSaveCharts}
+                                            disabled={isSavingCharts}
+                                            className="px-6 py-2 bg-[var(--primary-yellow)] text-black rounded font-bold flex items-center gap-2 hover:bg-[#e6c200] disabled:opacity-50"
+                                        >
+                                            {isSavingCharts ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
+                                            차트 저장
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-8">
+                                    {editingCharts.map((chart: any, cidx: number) => (
+                                        <div key={cidx} className="p-6 bg-[#0a0a0a] border border-gray-800 rounded-xl space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-gray-500 uppercase">차트 {cidx + 1} 제목</label>
+                                                    <input 
+                                                        placeholder="예: 글로벌 AI 반도체 시장 규모" 
+                                                        value={chart.title} 
+                                                        onChange={(e) => {
+                                                            const newCharts = [...editingCharts];
+                                                            newCharts[cidx].title = e.target.value;
+                                                            setEditingCharts(newCharts);
+                                                        }}
+                                                        className="w-full bg-black border border-gray-800 rounded p-2 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-gray-500 uppercase">단위</label>
+                                                    <input 
+                                                        placeholder="예: 십억 달러 ($B)" 
+                                                        value={chart.unit} 
+                                                        onChange={(e) => {
+                                                            const newCharts = [...editingCharts];
+                                                            newCharts[cidx].unit = e.target.value;
+                                                            setEditingCharts(newCharts);
+                                                        }}
+                                                        className="w-full bg-black border border-gray-800 rounded p-2 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-gray-500 uppercase">출처</label>
+                                                    <input 
+                                                        placeholder="예: Gartner, 2024" 
+                                                        value={chart.source} 
+                                                        onChange={(e) => {
+                                                            const newCharts = [...editingCharts];
+                                                            newCharts[cidx].source = e.target.value;
+                                                            setEditingCharts(newCharts);
+                                                        }}
+                                                        className="w-full bg-black border border-gray-800 rounded p-2 text-xs"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-gray-500 uppercase">CAGR (%) - 자동 계산용</label>
+                                                    <div className="flex gap-2">
+                                                        <input 
+                                                            type="number"
+                                                            placeholder="성장률" 
+                                                            value={cagrInputs[cidx] || ''} 
+                                                            onChange={(e) => setCagrInputs(prev => ({ ...prev, [cidx]: e.target.value }))}
+                                                            className="flex-1 bg-black border border-gray-800 rounded p-2 text-xs text-[var(--primary-yellow)]"
+                                                        />
+                                                        <button 
+                                                            onClick={() => applyCAGR(cidx)}
+                                                            className="px-3 py-2 bg-gray-900 text-gray-300 rounded text-[10px] hover:bg-gray-800"
+                                                        >
+                                                            적용
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
+                                                {tenYears.map((year, yidx) => (
+                                                    <div key={year} className="space-y-1">
+                                                        <div className="text-[10px] text-gray-600 text-center">{year}</div>
+                                                        <input 
+                                                            type="number"
+                                                            value={chart.values[yidx]} 
+                                                            onChange={(e) => {
+                                                                const newCharts = [...editingCharts];
+                                                                newCharts[cidx].values[yidx] = parseInt(e.target.value) || 0;
+                                                                setEditingCharts(newCharts);
+                                                            }}
+                                                            className="w-full bg-black border border-gray-800 rounded p-2 text-[10px] text-center font-bold"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         {activeTab === 'hero' && (
                             <>
@@ -995,105 +1191,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                             </div>
                                         </div>
 
-                                        <div className="space-y-6">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">시장 규모 차트 (최대 3개)</label>
-                                                {editingReport.market_charts.length < 3 && (
-                                                    <button 
-                                                        onClick={() => {
-                                                            handleReportChange('market_charts', [
-                                                                ...editingReport.market_charts, 
-                                                                { title: '', unit: '', source: '', labels: ['2023', '2024', '2025', '2026', '2027', '2028'], values: [0, 0, 0, 0, 0, 0] }
-                                                            ]);
-                                                        }}
-                                                        className="text-[var(--primary-yellow)] text-xs font-bold hover:underline"
-                                                    >
-                                                        + 차트 추가
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="space-y-8">
-                                                {editingReport.market_charts.map((chart: any, cidx: number) => (
-                                                    <div key={cidx} className="p-6 bg-black border border-gray-800 rounded-xl relative group/chart">
-                                                        <button 
-                                                            onClick={() => {
-                                                                const newCharts = editingReport.market_charts.filter((_: any, i: number) => i !== cidx);
-                                                                handleReportChange('market_charts', newCharts);
-                                                            }}
-                                                            className="absolute top-4 right-4 text-gray-600 hover:text-red-500 transition-colors"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                                            <div className="space-y-1">
-                                                                <label className="text-[10px] text-gray-500 uppercase">차트 제목</label>
-                                                                <input 
-                                                                    placeholder="예: 글로벌 AI 반도체 시장 규모" 
-                                                                    value={chart.title} 
-                                                                    onChange={(e) => {
-                                                                        const newCharts = [...editingReport.market_charts];
-                                                                        newCharts[cidx].title = e.target.value;
-                                                                        handleReportChange('market_charts', newCharts);
-                                                                    }}
-                                                                    className="w-full bg-[#111] border-none rounded p-2 text-xs"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <label className="text-[10px] text-gray-500 uppercase">단위</label>
-                                                                <input 
-                                                                    placeholder="예: 십억 달러 ($B)" 
-                                                                    value={chart.unit} 
-                                                                    onChange={(e) => {
-                                                                        const newCharts = [...editingReport.market_charts];
-                                                                        newCharts[cidx].unit = e.target.value;
-                                                                        handleReportChange('market_charts', newCharts);
-                                                                    }}
-                                                                    className="w-full bg-[#111] border-none rounded p-2 text-xs"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <label className="text-[10px] text-gray-500 uppercase">출처</label>
-                                                                <input 
-                                                                    placeholder="예: Gartner, 2024" 
-                                                                    value={chart.source} 
-                                                                    onChange={(e) => {
-                                                                        const newCharts = [...editingReport.market_charts];
-                                                                        newCharts[cidx].source = e.target.value;
-                                                                        handleReportChange('market_charts', newCharts);
-                                                                    }}
-                                                                    className="w-full bg-[#111] border-none rounded p-2 text-xs"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-2 lg:grid-cols-6 gap-2">
-                                                            {chart.labels.map((label: string, lidx: number) => (
-                                                                <div key={lidx} className="space-y-1">
-                                                                    <input 
-                                                                        value={label} 
-                                                                        onChange={(e) => {
-                                                                            const newCharts = [...editingReport.market_charts];
-                                                                            newCharts[cidx].labels[lidx] = e.target.value;
-                                                                            handleReportChange('market_charts', newCharts);
-                                                                        }}
-                                                                        className="w-full bg-[#0a0a0a] border border-gray-900 rounded p-2 text-[10px] text-center"
-                                                                    />
-                                                                    <input 
-                                                                        type="number"
-                                                                        value={chart.values[lidx]} 
-                                                                        onChange={(e) => {
-                                                                            const newCharts = [...editingReport.market_charts];
-                                                                            newCharts[cidx].values[lidx] = parseInt(e.target.value) || 0;
-                                                                            handleReportChange('market_charts', newCharts);
-                                                                        }}
-                                                                        className="w-full bg-[#111] border-none rounded p-2 text-[10px] text-center font-bold"
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        {/* Market Charts - REMOVED from here as per new request */}
 
                                         {/* STEEP */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

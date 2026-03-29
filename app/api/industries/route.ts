@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
       .from('industries')
-      .select('id, name_ko, name_en, category')
+      .select('id, name_ko, name_en, category, market_charts')
       .order('id', { ascending: true });
 
     if (error) throw error;

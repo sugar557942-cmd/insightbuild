@@ -57,7 +57,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
 
   const { data: report } = await supabaseAdmin
     .from('reports')
-    .select('*')
+    .select('*, industries(market_charts)')
     .eq('id', reportId)
     .single();
 
@@ -87,7 +87,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
     },
     insights: [report.insight_1, report.insight_2].filter((i: string | null): i is string => Boolean(i)),
     image_url: report.image_url || '',
-    market_charts: (report.market_charts as MarketChart[] | null) || [],
+    market_charts: (report.industries?.market_charts as MarketChart[] | null) || [],
     news: (report.news_refs as NewsItem[] | null) || [],
   };
 

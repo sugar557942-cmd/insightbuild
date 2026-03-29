@@ -2,7 +2,8 @@ CREATE TABLE IF NOT EXISTS industries (
   id SMALLINT PRIMARY KEY,
   name_ko TEXT NOT NULL,
   name_en TEXT NOT NULL,
-  category TEXT NOT NULL
+  category TEXT NOT NULL,
+  market_charts JSONB
 );
 
 CREATE TABLE IF NOT EXISTS reports (
