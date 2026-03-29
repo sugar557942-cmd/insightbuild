@@ -87,7 +87,9 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
     },
     insights: [report.insight_1, report.insight_2].filter((i: string | null): i is string => Boolean(i)),
     image_url: report.image_url || '',
-    market_charts: (report.industries?.market_charts as MarketChart[] | null) || [],
+    market_charts: (Array.isArray(report.industries) 
+      ? report.industries[0]?.market_charts 
+      : report.industries?.market_charts) || (report.market_charts as MarketChart[] | null) || [],
     news: (report.news_refs as NewsItem[] | null) || [],
   };
 
@@ -96,55 +98,55 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-white pt-24 pb-20">
       <div className="container mx-auto px-4">
-        {/* [A] Header with potential Image Background */}
-        <div className="relative mb-10">
+        {/* [A] Hero Section with 2:1 Ratio */}
+        <div className="relative w-full aspect-[2/1] rounded-3xl overflow-hidden mb-12 border border-white/5 shadow-2xl flex-shrink-0">
           {formattedReport.image_url && (
-            <div className="absolute -inset-x-4 -top-24 h-[400px] z-0 opacity-40">
-              <img 
-                src={formattedReport.image_url} 
-                className="w-full h-full object-cover" 
-                alt="Background"
-              />
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/20 via-[#0a0a0a]/80 to-[#0a0a0a]"></div>
-            </div>
+            <img 
+              src={formattedReport.image_url} 
+              className="absolute inset-0 w-full h-full object-cover" 
+              alt="Hero Background"
+            />
           )}
+          {/* Gradient Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10" />
           
-          <div className="relative z-10 pt-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="absolute inset-0 z-20 p-6 md:p-12 flex flex-col justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <Link 
                 href="/trends" 
-                className="flex items-center gap-2 text-[#999999] hover:text-white transition-colors text-sm"
+                className="flex items-center gap-2 text-white/70 hover:text-white transition-colors text-sm font-medium drop-shadow-md"
               >
                 <ChevronLeft size={18} />
                 Industry Trends Report
               </Link>
               <div className="flex items-center gap-3">
-                <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-medium">
+                <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-bold bg-black/40 backdrop-blur-sm shadow-lg">
                   {formattedReport.week_label}
                 </span>
-                <span className="bg-[#FFD700] text-black text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="bg-[#FFD700] text-black text-[10px] font-black px-2 py-1 rounded flex items-center gap-1 shadow-lg">
                   AUTO GENERATED
                 </span>
               </div>
             </div>
-            
-            <div className="text-[#FFD700] text-sm font-bold mb-3 tracking-wide">
-              {formattedReport.category}
+
+            <div className="max-w-4xl">
+              <div className="text-[#FFD700] text-sm font-black mb-3 tracking-[0.2em] uppercase drop-shadow-lg">
+                {formattedReport.category}
+              </div>
+              <h1 className="text-2xl md:text-5xl font-black mb-6 tracking-tight leading-[1.1] drop-shadow-2xl">
+                {formattedReport.title}
+              </h1>
+              <div className="flex flex-wrap gap-2">
+                {formattedReport.tags.map((tag: string) => (
+                  <span 
+                    key={tag} 
+                    className="bg-black/60 backdrop-blur-md text-[#EEEEEE] border border-white/10 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider shadow-lg"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 tracking-tight leading-tight">
-              {formattedReport.title}
-            </h1>
-          </div>
-          
-          <div className="flex flex-wrap gap-2">
-            {formattedReport.tags.map((tag: string) => (
-              <span 
-                key={tag} 
-                className="bg-[#1a1a1a] text-[#999999] border border-[#2a2a2a] rounded-full px-4 py-1.5 text-xs font-medium"
-              >
-                {tag}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -188,54 +190,63 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
             </div>
           </div>
 
-          {/* [C-2] Charts & Insights */}
+          {/* [C-2] Common Industry Charts */}
           <div className="flex flex-col gap-8">
-            {/* Market Charts Section */}
-            {formattedReport.market_charts.map((chart, idx) => (
-              <div key={idx} className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col hover:border-gray-700 transition-colors">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <div className="text-xs font-bold tracking-[0.2em] uppercase mb-1" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
-                      {chart.title || 'Market Size Data'}
-                    </div>
-                    <div className="text-[10px] text-gray-500 font-medium">
-                      Unit: {chart.unit}
-                    </div>
-                  </div>
-                  <Info size={14} className="text-gray-600 cursor-help" />
-                </div>
-                
-                <div className="h-[200px] mb-4">
-                  <TrendBarChart 
-                    labels={chart.labels} 
-                    values={chart.values} 
-                    color={CHART_COLORS[idx % CHART_COLORS.length]}
-                  />
-                </div>
-                
-                <div className="text-[#666666] text-[10px] text-right">
-                  Source: {chart.source}
-                </div>
-              </div>
-            ))}
-
-            {/* Insights Card */}
-              {formattedReport.insights.length > 0 && (
-                <div className="bg-[#111111] border border-[#222222] rounded-2xl p-8">
-                  <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-6 uppercase">
-                    KEY INSIGHTS
-                  </div>
-                  <div className="space-y-4">
-                    {formattedReport.insights.map((insight: string, i: number) => (
-                      <div key={i} className={`bg-[#1a1a1a] rounded-lg p-4 border-l-4 ${i === 0 ? 'border-[#FFD700]' : 'border-[#4ade80]'} text-[#cccccc] text-sm leading-relaxed shadow-lg`}>
-                        {insight}
+            {formattedReport.market_charts.map((chart, idx) => {
+              const cagr = calculateCAGR(chart.values, chart.labels);
+              return (
+                <div key={idx} className="bg-[#111111] border border-[#222222] rounded-2xl p-8 flex flex-col hover:border-gray-700 transition-colors shadow-xl">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <div className="text-xs font-bold tracking-[0.2em] uppercase" style={{ color: CHART_COLORS[idx % CHART_COLORS.length] }}>
+                          {chart.title || 'Market Size Data'}
+                        </div>
+                        {cagr && (
+                          <span className="bg-[#FFD700] text-black text-[9px] font-black px-1.5 py-0.5 rounded italic">
+                            CAGR {cagr}%
+                          </span>
+                        )}
                       </div>
-                    ))}
+                      <div className="text-[10px] text-gray-500 font-medium">
+                        Unit: {chart.unit}
+                      </div>
+                    </div>
+                    <Info size={14} className="text-gray-600 cursor-help" />
+                  </div>
+                  
+                  <div className="h-[200px] mb-4">
+                    <TrendBarChart 
+                      labels={chart.labels} 
+                      values={chart.values} 
+                      color={CHART_COLORS[idx % CHART_COLORS.length]}
+                    />
+                  </div>
+                  
+                  <div className="text-[#666666] text-[10px] text-right">
+                    Source: {chart.source}
                   </div>
                 </div>
-              )}
+              );
+            })}
           </div>
         </div>
+
+        {/* [C-3] Full Width Key Insights Section */}
+        {formattedReport.insights.length > 0 && (
+          <div className="mt-8 bg-[#111111] border border-[#222222] rounded-2xl p-8">
+            <div className="text-[#FFD700] text-xs font-bold tracking-[0.2em] mb-8 uppercase text-center">
+              KEY INSIGHTS
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {formattedReport.insights.map((insight: string, i: number) => (
+                <div key={i} className={`bg-[#1a1a1a] rounded-xl p-6 border-l-4 ${i === 0 ? 'border-[#FFD700]' : 'border-[#4ade80]'} text-[#cccccc] text-sm leading-relaxed shadow-2xl transition-transform hover:scale-[1.01]`}>
+                  {renderBullets(insight)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* [D] Bottom: News Card */}
         <div className="bg-[#111111] border border-[#222222] rounded-lg p-6 mt-8">
@@ -303,14 +314,52 @@ function SteepRow({
 
   return (
     <div className={`${isLast ? '' : 'border-b border-[#1a1a1a] pb-5 mb-5'}`}>
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className={`${styles[variant]} px-3 py-1 rounded text-xs font-bold min-w-[70px] text-center h-fit w-fit`}>
+      <div className="flex flex-col md:flex-row gap-6">
+        <div className={`${styles[variant]} px-3 py-1.5 rounded text-[10px] font-bold min-w-[70px] text-center h-fit w-fit uppercase tracking-wider`}>
           {label}
         </div>
-        <div className="text-[#cccccc] text-sm leading-relaxed flex-grow">
-          {content}
+        <div className="text-[#bbbbbb] text-sm leading-relaxed flex-grow">
+          {renderBullets(content)}
         </div>
       </div>
     </div>
+  );
+}
+
+function calculateCAGR(values: number[], labels: string[]) {
+  const startIdx = values.findIndex(v => v > 0);
+  const endIdx = [...values].reverse().findIndex(v => v > 0);
+  const realEndIdx = endIdx === -1 ? -1 : values.length - 1 - endIdx;
+  
+  if (startIdx === -1 || realEndIdx === -1 || startIdx === realEndIdx) return null;
+  
+  const startVal = values[startIdx];
+  const endVal = values[realEndIdx];
+  const startYear = parseInt(labels[startIdx]);
+  const endYear = parseInt(labels[realEndIdx]);
+  
+  if (isNaN(startYear) || isNaN(endYear) || endYear <= startYear) return null;
+  
+  const years = endYear - startYear;
+  const cagr = (Math.pow(endVal / startVal, 1 / years) - 1) * 100;
+  return cagr.toFixed(1);
+}
+
+function renderBullets(text: string) {
+  if (!text) return null;
+  // Split by period followed by space, or newline
+  const sentences = text.trim().split(/\.\s+|\.\n/).filter(s => s.trim() !== '');
+  
+  return (
+    <ul className="space-y-2.5 list-none">
+      {sentences.map((sentence, idx) => (
+        <li key={idx} className="flex items-start gap-3">
+          <span className="mt-2 w-1 h-1 rounded-full bg-current opacity-30 shrink-0" />
+          <span className="flex-1">
+            {sentence.trim().endsWith('.') ? sentence : `${sentence}.`}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

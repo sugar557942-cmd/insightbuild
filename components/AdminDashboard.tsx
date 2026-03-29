@@ -31,6 +31,8 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
     const [editingCharts, setEditingCharts] = useState<any[]>([]);
     const [isSavingCharts, setIsSavingCharts] = useState(false);
     const [cagrInputs, setCagrInputs] = useState<Record<number, string>>({}); // { chartIdx: cagrValue }
+    const [filterIndustry, setFilterIndustry] = useState<number | 'all'>('all');
+    const [filterWeek, setFilterWeek] = useState<string | 'all'>('all');
 
     const getWeek = () => {
         const d = new Date();
@@ -98,14 +100,20 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         }
     };
 
-    // Auto-generate ID (Slug)
+    // Auto-generate ID (Slug) and Week Label
     useEffect(() => {
         if (editingReport && reportView === 'editor') {
             const industry = industries.find(i => i.id === editingReport.industry_id);
             if (industry && editingReport.week) {
                 const slug = `${industry.name_en.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${editingReport.week.toLowerCase()}`;
-                if (editingReport.id !== slug) {
-                    setEditingReport((prev: any) => ({ ...prev, id: slug }));
+                const autoLabel = getWeekLabel(editingReport.week);
+                
+                if (editingReport.id !== slug || editingReport.week_label !== autoLabel) {
+                    setEditingReport((prev: any) => ({ 
+                        ...prev, 
+                        id: slug,
+                        week_label: autoLabel || prev.week_label
+                    }));
                 }
             }
         }
@@ -159,11 +167,19 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
         }
     };
 
+    const filteredReports = reports.filter(report => {
+        const matchesIndustry = filterIndustry === 'all' || report.industry_id === filterIndustry;
+        const matchesWeek = filterWeek === 'all' || report.week === filterWeek;
+        return matchesIndustry && matchesWeek;
+    });
+
+    const uniqueWeeks = Array.from(new Set(reports.map(r => r.week))).sort().reverse();
+
     const handleToggleSelectAll = () => {
-        if (selectedReportIds.size === reports.length) {
+        if (selectedReportIds.size === filteredReports.length && filteredReports.length > 0) {
             setSelectedReportIds(new Set());
         } else {
-            setSelectedReportIds(new Set(reports.map(r => r.id)));
+            setSelectedReportIds(new Set(filteredReports.map(r => r.id)));
         }
     };
 
@@ -1018,6 +1034,29 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                     <div className="flex items-center gap-3">
                                         {reportView === 'list' ? (
                                             <>
+                                                <div className="flex items-center gap-2 mr-4 bg-gray-900/50 p-1 rounded-lg border border-gray-800">
+                                                    <select 
+                                                        value={filterIndustry}
+                                                        onChange={(e) => setFilterIndustry(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                                                        className="bg-transparent text-[10px] font-bold text-gray-400 outline-none px-2 py-1.5 cursor-pointer hover:text-white transition-colors"
+                                                    >
+                                                        <option value="all">모든 산업</option>
+                                                        {industries.map(ind => (
+                                                            <option key={ind.id} value={ind.id}>{ind.name_ko}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="w-[1px] h-3 bg-gray-800"></div>
+                                                    <select 
+                                                        value={filterWeek}
+                                                        onChange={(e) => setFilterWeek(e.target.value)}
+                                                        className="bg-transparent text-[10px] font-bold text-gray-400 outline-none px-2 py-1.5 cursor-pointer hover:text-white transition-colors"
+                                                    >
+                                                        <option value="all">모든 주차</option>
+                                                        {uniqueWeeks.map(week => (
+                                                            <option key={week} value={week}>{week}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                                 <button 
                                                     onClick={() => { setEditingReport(emptyReport); setReportView('editor'); }}
                                                     className="px-3 py-1.5 bg-[var(--primary-yellow)] text-black rounded text-xs font-bold flex items-center gap-1.5 hover:bg-[#e6c200]"
@@ -1063,7 +1102,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                             <input 
                                                                 type="checkbox" 
                                                                 className="w-4 h-4 rounded border-gray-700 bg-gray-900 text-[var(--primary-yellow)] focus:ring-[var(--primary-yellow)] focus:ring-offset-0 cursor-pointer"
-                                                                checked={reports.length > 0 && selectedReportIds.size === reports.length}
+                                                                checked={filteredReports.length > 0 && selectedReportIds.size === filteredReports.length}
                                                                 onChange={handleToggleSelectAll}
                                                             />
                                                         </th>
@@ -1072,7 +1111,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-800/50">
-                                                    {reports.map((report) => (
+                                                    {filteredReports.map((report) => (
                                                         <tr key={report.id} className={`hover:bg-white/5 transition-colors group ${selectedReportIds.has(report.id) ? 'bg-white/5' : ''}`}>
                                                             <td className="px-6 py-4 text-center align-middle">
                                                                 <input 
@@ -1351,4 +1390,35 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
             </div>
         </div>
     );
+}
+
+function getWeekLabel(weekStr: string) {
+    if (!weekStr) return '';
+    const match = weekStr.match(/^(\d{4})-W(\d{1,2})$/);
+    if (!match) return '';
+    
+    const year = parseInt(match[1]);
+    const week = parseInt(match[2]);
+    
+    // ISO week algorithm: Jan 4th is always in Week 1
+    const jan4 = new Date(year, 0, 4);
+    const monday = new Date(jan4);
+    monday.setDate(jan4.getDate() - (jan4.getDay() || 7) + 1);
+    
+    const targetMonday = new Date(monday);
+    targetMonday.setDate(monday.getDate() + (week - 1) * 7);
+    
+    const targetSunday = new Date(targetMonday);
+    targetSunday.setDate(targetMonday.getDate() + 6);
+    
+    const startM = targetMonday.getMonth() + 1;
+    const startD = targetMonday.getDate();
+    const endM = targetSunday.getMonth() + 1;
+    const endD = targetSunday.getDate();
+
+    const dateRange = startM === endM 
+        ? `${startM}월 ${startD}~${endD}일`
+        : `${startM}월 ${startD}일~${endM}월 ${endD}일`;
+
+    return `${year}년 ${week}주차 · ${dateRange}`;
 }
