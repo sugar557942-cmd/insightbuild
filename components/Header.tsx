@@ -54,7 +54,7 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                 </Link>
 
                 {/* Desktop Navigation */}
-                <nav className="hidden md:flex items-center gap-8">
+                <nav className="hidden md:flex items-center gap-6">
                     {navItems.map(item => (
                         <Link
                             key={item.name}
@@ -69,46 +69,36 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                         </Link>
                     ))}
                     
-                    {user ? (
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={onAdminClick}
-                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 border border-gray-700 rounded-full hover:border-[var(--primary-yellow)] hover:text-[var(--primary-yellow)] transition-all"
-                            >
-                                <Lock size={12} />
-                                ADMIN
-                            </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={openLogin}
+                            className="text-sm font-bold text-gray-300 hover:text-white transition-colors"
+                        >
+                            Log In
+                        </button>
+                        <button
+                            onClick={openSignup}
+                            className="bg-[var(--primary-yellow)] text-black text-xs font-bold px-4 py-2 rounded-full hover:bg-yellow-400 transition-all"
+                        >
+                            Sign Up
+                        </button>
+                        <button
+                            onClick={onAdminClick}
+                            className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 border border-gray-700 rounded-full hover:border-[var(--primary-yellow)] hover:text-[var(--primary-yellow)] transition-all ml-1"
+                        >
+                            <Lock size={12} />
+                            ADMIN
+                        </button>
+                        {user && (
                             <button
                                 onClick={() => signOut()}
-                                className="text-gray-400 hover:text-white transition-colors"
+                                className="text-gray-400 hover:text-white transition-colors ml-1"
                                 title="로그아웃"
                             >
                                 <LogOut size={18} />
                             </button>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={openLogin}
-                                className="text-sm font-bold text-gray-300 hover:text-white transition-colors"
-                            >
-                                Log In
-                            </button>
-                            <button
-                                onClick={openSignup}
-                                className="bg-[var(--primary-yellow)] text-black text-xs font-bold px-4 py-2 rounded-full hover:bg-yellow-400 transition-all"
-                            >
-                                Sign Up
-                            </button>
-                            <button
-                                onClick={onAdminClick}
-                                className="flex items-center gap-2 text-xs font-bold px-3 py-1.5 border border-gray-700 rounded-full hover:border-[var(--primary-yellow)] hover:text-[var(--primary-yellow)] transition-all ml-1"
-                            >
-                                <Lock size={12} />
-                                ADMIN
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </nav>
 
                 {/* Menu Toggle (mobile) */}
@@ -143,60 +133,47 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
                     </Link>
                 ))}
 
-                {user ? (
-                    <div className="flex flex-col items-center gap-4 mt-4">
-                        <button
-                            onClick={() => {
-                                setIsMobileMenuOpen(false);
-                                onAdminClick();
-                            }}
-                            className="flex items-center gap-2 text-sm font-bold px-6 py-3 border border-gray-700 rounded-full text-gray-300"
-                        >
-                            <Lock size={16} />
-                            관리자 모드
-                        </button>
+                <div className="flex flex-col items-center gap-4 mt-4 w-full px-12">
+                    <button
+                        onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            openLogin();
+                        }}
+                        className="w-full py-4 text-xl font-bold text-white border border-gray-800 rounded-2xl"
+                    >
+                        Log In
+                    </button>
+                    <button
+                        onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            openSignup();
+                        }}
+                        className="w-full py-4 text-xl font-bold bg-[var(--primary-yellow)] text-black rounded-2xl"
+                    >
+                        Sign Up
+                    </button>
+                    <button
+                        onClick={() => {
+                            setIsMobileMenuOpen(false);
+                            onAdminClick();
+                        }}
+                        className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-gray-500 border border-gray-900 rounded-xl"
+                    >
+                        <Lock size={14} />
+                        ADMIN
+                    </button>
+                    {user && (
                         <button
                             onClick={() => {
                                 setIsMobileMenuOpen(false);
                                 signOut();
                             }}
-                            className="text-gray-500 font-medium hover:text-white transition-colors"
+                            className="text-gray-500 font-medium hover:text-white transition-colors mt-2"
                         >
                             로그아웃
                         </button>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center gap-4 mt-4 w-full px-12">
-                        <button
-                            onClick={() => {
-                                setIsMobileMenuOpen(false);
-                                openLogin();
-                            }}
-                            className="w-full py-4 text-xl font-bold text-white border border-gray-800 rounded-2xl"
-                        >
-                            Log In
-                        </button>
-                        <button
-                            onClick={() => {
-                                setIsMobileMenuOpen(false);
-                                openSignup();
-                            }}
-                            className="w-full py-4 text-xl font-bold bg-[var(--primary-yellow)] text-black rounded-2xl"
-                        >
-                            Sign Up
-                        </button>
-                        <button
-                            onClick={() => {
-                                setIsMobileMenuOpen(false);
-                                onAdminClick();
-                            }}
-                            className="flex items-center justify-center gap-2 w-full py-3 text-sm font-bold text-gray-500 border border-gray-900 rounded-xl"
-                        >
-                            <Lock size={14} />
-                            ADMIN
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             <AuthModal 
