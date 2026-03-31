@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const { data, error } = await supabaseAdmin
       .from('reports')
-      .select('id, title, week, published_at')
+      .select('id, title, week, published_at, industry_id')
       .order('published_at', { ascending: false });
 
     if (error) throw error;

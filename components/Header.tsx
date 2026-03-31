@@ -35,11 +35,11 @@ export default function Header({ onAdminClick }: { onAdminClick: () => void }) {
     }, [isMobileMenuOpen]);
 
     const navItems = [
-        { name: 'About', href: '#about' },
-        { name: 'Services', href: '#services' },
-        { name: 'Portfolio', href: '#portfolio' },
+        { name: 'About', href: '/#about' },
+        { name: 'Services', href: '/#services' },
+        { name: 'Portfolio', href: '/#portfolio' },
         { name: 'Industry Trends Report', href: '/trends' },
-        { name: 'Contact', href: '#contact' },
+        { name: 'Contact', href: '/#contact' },
     ];
 
     return (

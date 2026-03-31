@@ -1040,9 +1040,9 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                         onChange={(e) => setFilterIndustry(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
                                                         className="bg-transparent text-[10px] font-bold text-gray-400 outline-none px-2 py-1.5 cursor-pointer hover:text-white transition-colors"
                                                     >
-                                                        <option value="all">모든 산업</option>
+                                                        <option value="all" className="bg-black text-white">모든 산업</option>
                                                         {industries.map(ind => (
-                                                            <option key={ind.id} value={ind.id}>{ind.name_ko}</option>
+                                                            <option key={ind.id} value={ind.id} className="bg-black text-white">{ind.name_ko}</option>
                                                         ))}
                                                     </select>
                                                     <div className="w-[1px] h-3 bg-gray-800"></div>
@@ -1051,9 +1051,9 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                         onChange={(e) => setFilterWeek(e.target.value)}
                                                         className="bg-transparent text-[10px] font-bold text-gray-400 outline-none px-2 py-1.5 cursor-pointer hover:text-white transition-colors"
                                                     >
-                                                        <option value="all">모든 주차</option>
+                                                        <option value="all" className="bg-black text-white">모든 주차</option>
                                                         {uniqueWeeks.map(week => (
-                                                            <option key={week} value={week}>{week}</option>
+                                                            <option key={week} value={week} className="bg-black text-white">{week}</option>
                                                         ))}
                                                     </select>
                                                 </div>
@@ -1184,7 +1184,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                     className="w-full bg-black border border-gray-800 rounded p-3 text-sm focus:border-[var(--primary-yellow)] outline-none"
                                                 >
                                                     {industries.map(ind => (
-                                                        <option key={ind.id} value={ind.id}>{ind.name_ko} ({ind.category})</option>
+                                                        <option key={ind.id} value={ind.id} className="bg-black text-white">{ind.name_ko} ({ind.category})</option>
                                                     ))}
                                                 </select>
                                             </div>
@@ -1197,7 +1197,7 @@ export default function AdminDashboard({ content, onSave, onClose }: AdminDashbo
                                                 >
                                                     {Array.from({ length: 52 }, (_, i) => {
                                                         const w = `2026-W${String(i + 1).padStart(2, '0')}`;
-                                                        return <option key={w} value={w}>{w}</option>;
+                                                        return <option key={w} value={w} className="bg-black text-white">{w}</option>;
                                                     })}
                                                 </select>
                                             </div>
