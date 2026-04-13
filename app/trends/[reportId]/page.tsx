@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Info } from 'lucide-react';
+import { ChevronLeft, Info, Eye } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server-client';
 import TrendBarChart from '@/components/trends/TrendBarChart';
@@ -70,6 +70,7 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
       <RestrictedDetailView 
         category={report.category} 
         weekLabel={report.week_label} 
+        views={report.views}
       />
     );
   }
@@ -120,6 +121,10 @@ export default async function ReportDetailPage({ params }: { params: Promise<{ r
                 Industry Trends Report
               </Link>
               <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-white/50 text-sm bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
+                  <Eye size={14} />
+                  <span>{report.views || 0}</span>
+                </div>
                 <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-bold bg-black/40 backdrop-blur-sm shadow-lg">
                   {formattedReport.week_label}
                 </span>

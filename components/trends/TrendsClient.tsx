@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import { ChevronRight, FileText, Search } from 'lucide-react';
+import { ChevronRight, FileText, Search, Eye } from 'lucide-react';
 import { useAuth } from '../auth/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import RestrictedAccess from '../auth/RestrictedAccess';
@@ -163,9 +163,15 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                             {/* Left: Info & STEEP */}
                                             <div>
-                                                <span className="bg-[#FFD700] text-black text-xs font-bold px-3 py-1 rounded">
-                                                    이주의 주목 산업
-                                                </span>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="bg-[#FFD700] text-black text-xs font-bold px-3 py-1 rounded">
+                                                        이주의 주목 산업
+                                                    </span>
+                                                    <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                                                        <Eye size={14} />
+                                                        <span>{featured.views || 0}</span>
+                                                    </div>
+                                                </div>
                                                 <h3 className="text-white text-xl font-bold mt-3">
                                                     {featured.title}
                                                 </h3>
@@ -234,7 +240,13 @@ export default function TrendsClient({ initialIndustries, initialReports, isLogg
                                                         <FileText size={14} />
                                                         INDUSTRY REPORT
                                                     </div>
-                                                    <span className="text-gray-500 text-xs">{report.weekLabel}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+                                                            <Eye size={14} />
+                                                            <span>{report.views || 0}</span>
+                                                        </div>
+                                                        <span className="text-gray-500 text-xs">{report.weekLabel}</span>
+                                                    </div>
                                                 </div>
                                                 <h3 className="text-xl font-bold mb-3 group-hover:text-[var(--primary-yellow)] transition-colors">
                                                     {report.title}

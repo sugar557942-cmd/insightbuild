@@ -16,6 +16,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Increment view count
+    await supabaseAdmin.rpc('increment_report_views', { report_id: id });
+
     const { data, error } = await supabaseAdmin
       .from('reports')
       .select('*')

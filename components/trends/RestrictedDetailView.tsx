@@ -6,14 +6,15 @@ import { useAuth } from '../auth/AuthProvider';
 import AuthModal from '../auth/AuthModal';
 import RestrictedAccess from '../auth/RestrictedAccess';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Eye } from 'lucide-react';
 
 interface RestrictedDetailViewProps {
   category: string;
   weekLabel: string;
+  views?: number;
 }
 
-export default function RestrictedDetailView({ category, weekLabel }: RestrictedDetailViewProps) {
+export default function RestrictedDetailView({ category, weekLabel, views }: RestrictedDetailViewProps) {
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authInitialView, setAuthInitialView] = useState<'login' | 'signup'>('login');
@@ -43,6 +44,10 @@ export default function RestrictedDetailView({ category, weekLabel }: Restricted
           </Link>
           
           <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-1.5 text-white/50 text-sm bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
+              <Eye size={14} />
+              <span>{views || 0}</span>
+            </div>
             <span className="border border-[#FFD700] text-[#FFD700] rounded-full px-3 py-1 text-sm font-medium">
               {weekLabel}
             </span>
